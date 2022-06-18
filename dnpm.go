@@ -9,7 +9,7 @@ import (
 func main() {
 	if len(os.Args) < 2 {
 		messages.EmptyCmd(true)
-		os.Exit(1)
+		os.Exit(0)
 	}
 
 	switch os.Args[1] {
@@ -23,6 +23,6 @@ func main() {
 		messages.EmptyCmd(false)
 	default:
 		messages.EmptyCmd(true)
-		os.Exit(1)
+		os.Exit(0)
 	}
 }
