@@ -17,9 +17,9 @@ type PackageJSONFormat struct {
 	DevDependencies map[string]string `json:"devDependencies"`
 }
 
-func CreateEmptyPackageJSON(dir string) error {
+func CreateEmptyPackageJSON() error {
 	// Create the package.json file
-	packageJSONFile, err := os.Create(dir + "/package.json")
+	packageJSONFile, err := os.Create("./package.json")
 	if err != nil {
 		return err
 	}
@@ -30,7 +30,7 @@ func CreateEmptyPackageJSON(dir string) error {
 	// https://stackoverflow.com/questions/28595664/how-to-stop-json-marshal-from-escaping-and
 	enc.SetEscapeHTML(false)
 	enc.SetIndent("", "\t")
-	enc.Encode(PackageJSONFormat{
+	err = enc.Encode(PackageJSONFormat{
 		Name:        "dnpm-project",
 		Description: "A project created using dnpm.",
 		Version:     "0.0.1",
@@ -43,6 +43,9 @@ func CreateEmptyPackageJSON(dir string) error {
 		Dependencies:    map[string]string{},
 		DevDependencies: map[string]string{},
 	})
+	if err != nil {
+		return err
+	}
 
 	// Write the package.json file
 	_, err = packageJSONFile.Write(buf.Bytes())
