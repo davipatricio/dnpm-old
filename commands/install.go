@@ -80,11 +80,9 @@ func installSpecificPackages(packages []string) {
 			if version == "" {
 				// Get the property latest from d.dist-tags
 				version = distTags["latest"].(string)
-			} else {
+			} else if distTags[version] != nil {
 				// Get the version of the tag
-				if distTags[version] != nil {
-					version = distTags[version].(string)
-				}
+				version = distTags[version].(string)
 			}
 		}
 
