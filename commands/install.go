@@ -7,6 +7,8 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"sync"
+	"time"
 )
 
 func RunInstallCmd() bool {
@@ -48,7 +50,7 @@ func RunInstallCmd() bool {
 
 		// Notify the user that we are installing the requested packages
 		messages.InstallingPkgsInstallCmd(*showEmojis, packagesArgs)
-		installSpecificPackages(packagesArgs)
+		installSpecificPackages(packagesArgs, true)
 		return false
 	}
 
@@ -62,52 +64,82 @@ func installPackagesPresentOnPackageJSON(path string) {
 	// TODO: install all packages from package.json
 }
 
-func installSpecificPackages(packages []string) {
-	for _, pkg := range packages {
-		name := utils.GetPkgName(pkg)
-		version := utils.GetPkgVersionOrTag(pkg)
-		d, _ := rest.GetPkg(name)
-		if d["error"] != nil {
-			fmt.Println("Pacote desconhecido.")
-			continue
-		}
+func installSpecificPackages(packages []string, manual bool) {
+	var wg sync.WaitGroup
+	startTime := time.Now().UnixMilli()
 
-		// If there the package has a tag that is the same as the provided version,
-		// we should install that tag instead of the version.
-		if d["dist-tags"] != nil {
-			distTags := d["dist-tags"].(map[string]interface{})
-			// If no version was provided, use the latest version
-			if version == "" {
-				// Get the property latest from d.dist-tags
-				version = distTags["latest"].(string)
-			} else if distTags[version] != nil {
-				// Get the version of the tag
-				version = distTags[version].(string)
+	wg.Add(1)
+	go func() {
+		for _, pkg := range packages {
+
+			name := utils.GetPkgName(pkg)
+			version := utils.GetPkgVersionOrTag(pkg)
+			d, _ := rest.GetPkg(name)
+			if d["error"] != nil {
+				fmt.Println("Pacote desconhecido.")
+				wg.Done()
+				continue
 			}
-		}
 
-		if d["versions"].(map[string]interface{})[version] != nil {
-			createFolderToPkg(name, version)
-
-			versionData := d["versions"].(map[string]interface{})[version].(map[string]interface{})
-			downloadUrl := versionData["dist"].(map[string]interface{})["tarball"].(string)
-
-			deps, ok := versionData["dependencies"].(map[string]interface{})
-			if ok {
-				for depName, depVer := range deps {
-					fmt.Println("Verificando se a dependência", depName, "@", depVer.(string), "já foi baixada alguma vez...")
-
-					if !utils.PkgAlreadyCached(depName, depVer.(string)) {
-						fmt.Println("Dependencia", depName, "nunca foi baixada anteriormente. Efetuando download (Yarn Registry)...")
-						installSpecificPackages([]string{depName + "@" + depVer.(string)})
-					}
+			// If there the package has a tag that is the same as the provided version,
+			// we should install that tag instead of the version.
+			if d["dist-tags"] != nil {
+				distTags := d["dist-tags"].(map[string]interface{})
+				// If no version was provided, use the latest version
+				if version == "" {
+					// Get the property latest from d.dist-tags
+					version = distTags["latest"].(string)
+				} else if distTags[version] != nil {
+					// Get the version of the tag
+					version = distTags[version].(string)
 				}
 			}
 
-			fmt.Println("URL: ", downloadUrl)
-		} else {
-			fmt.Println("Versão desconhecida.")
+			if d["versions"].(map[string]interface{})[version] != nil {
+				_, err := os.Stat(utils.GetStoreDir() + "/" + name + "/" + version)
+				createFolderToPkg(name, version)
+
+				versionData := d["versions"].(map[string]interface{})[version].(map[string]interface{})
+				downloadUrl := versionData["dist"].(map[string]interface{})["tarball"].(string)
+
+				go func() {
+					if utils.PkgAlreadyCached(name, version) && err != nil {
+						fmt.Println("Baixando pacote", name, "@", version, "...")
+						rest.DownloadPkgTgz(downloadUrl, utils.GetTempDir()+"/"+name+"-"+version+".tgz")
+						fmt.Println("Descompactando pacote", name, "@", version, "...")
+						utils.DecompressTgz(utils.GetTempDir()+"/"+name+"-"+version+".tgz", utils.GetStoreDir()+"/"+name+"/"+version)
+						os.Remove(utils.GetTempDir() + "/" + name + "-" + version + ".tgz")
+					} else {
+						fmt.Println("Pacote", name, "@", version, "já está no cache e não precisou ser baixada novamente.")
+					}
+					wg.Done()
+				}()
+
+				deps, ok := versionData["dependencies"].(map[string]interface{})
+				if ok {
+					for depName, depVer := range deps {
+						fmt.Println("Verificando se a dependência", depName, "@", depVer.(string), "já foi baixada alguma vez...")
+						if !utils.PkgAlreadyCached(depName, utils.RemovePkgVersionRange(depVer.(string))) {
+							fmt.Println("Dependencia", depName, "nunca foi baixada anteriormente. Efetuando download (Yarn Registry)...")
+							wg.Add(1)
+							go func() {
+								installSpecificPackages([]string{depName + "@" + depVer.(string)}, false)
+								wg.Done()
+							}()
+						}
+					}
+				}
+			} else {
+				fmt.Println("Versão desconhecida.")
+				wg.Done()
+			}
 		}
+	}()
+
+	wg.Wait()
+	endTime := time.Now().UnixMilli()
+	if manual {
+		fmt.Println("\n\n - Tempo de instalação de todas as dependencias etc (sem cache):", endTime-startTime, "ms")
 	}
 }
 
