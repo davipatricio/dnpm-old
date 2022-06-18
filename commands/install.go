@@ -63,8 +63,9 @@ func RunInstallCmd() bool {
 	return false
 }
 
+// TODO: install all packages from package.json
 func installPackagesPresentOnPackageJSON(path string) {
-	// TODO: install all packages from package.json
+	// If this function is called, means that we found a package.json and no packages/arguments were provided
 }
 
 func installSpecificPackages(packages []string, manual, showEmojis, showDebug bool) {
@@ -72,11 +73,14 @@ func installSpecificPackages(packages []string, manual, showEmojis, showDebug bo
 	startTime := time.Now().UnixMilli()
 
 	wg.Add(1)
+	// Spawn a goroutine to download the packages to download packages faster
 	go func() {
 		for _, pkg := range packages {
-
+			// Get the package name from the provided string e.g. "typescript@nightly" -> "typescript"
 			name := utils.GetPkgName(pkg)
+			// Get the version from the provided string e.g. "typescript@nightly" -> "nightly"
 			version := utils.GetPkgVersionOrTag(pkg)
+			// Make a request to the Yarn registry requesting the package info
 			d, _ := rest.GetPkg(name)
 			if d["error"] != nil {
 				messages.PkgNotFoundInstallCmd(showEmojis, name)
@@ -98,8 +102,11 @@ func installSpecificPackages(packages []string, manual, showEmojis, showDebug bo
 				}
 			}
 
+			// If we have the list of versions, we should check if the provided version is valid
 			if d["versions"].(map[string]interface{})[version] != nil {
+				// Verify if the package is already cached
 				_, err := os.Stat(utils.GetStoreDir() + "/" + name + "/" + version)
+				// If the folder doesn't exist, we should create it
 				if err != nil {
 					createFolderToPkg(name, version)
 				}
@@ -108,13 +115,15 @@ func installSpecificPackages(packages []string, manual, showEmojis, showDebug bo
 				downloadUrl := versionData["dist"].(map[string]interface{})["tarball"].(string)
 
 				go func() {
-					// If we could create the folder and if got an error
-					// Means that the package is not cached
+					// If we could create the folder and if got an error means that the package is not cached
 					if utils.PkgAlreadyCached(name, version) && err != nil {
 						installDebug("Downloading package "+name+" ("+version+")", showDebug)
+						// Download the tgz to the temp folder
 						rest.DownloadPkgTgz(downloadUrl, utils.GetTempDir()+"/"+name+"-"+version+".tgz")
 						installDebug("Extracting package "+name+" ("+version+")", showDebug)
+						// Extract the tgz to the store folder
 						utils.DecompressTgz(utils.GetTempDir()+"/"+name+"-"+version+".tgz", utils.GetStoreDir()+"/"+name+"/"+version)
+						// Remove the temp tgz
 						os.Remove(utils.GetTempDir() + "/" + name + "-" + version + ".tgz")
 					} else {
 						installDebug("Package "+name+" ("+version+") is already cached", showDebug)
@@ -122,14 +131,19 @@ func installSpecificPackages(packages []string, manual, showEmojis, showDebug bo
 					wg.Done()
 				}()
 
+				// Check if there are dependencies
 				deps, ok := versionData["dependencies"].(map[string]interface{})
 				if ok {
+					// Loop through each dependencies
 					for depName, depVer := range deps {
 						installDebug("Verifying if dependency "+depName+" ("+depVer.(string)+") is cached", showDebug)
+						// If the dependency is not cached, we should download it
 						if !utils.PkgAlreadyCached(depName, utils.RemovePkgVersionRange(depVer.(string))) {
 							installDebug("Dependency "+depName+" is not cached.\nDownloading dependency "+depName+" ("+depVer.(string)+")", showDebug)
 							wg.Add(1)
 							go func() {
+								// Call this function again to download the dependency
+								// So we don't have duplicated code
 								installSpecificPackages([]string{depName + "@" + depVer.(string)}, false, showEmojis, showDebug)
 								wg.Done()
 							}()
@@ -137,6 +151,7 @@ func installSpecificPackages(packages []string, manual, showEmojis, showDebug bo
 					}
 				}
 			} else {
+				// If for some reason, we cant get the version list (server down?), warn the user
 				messages.VersionNotFoundInstallCmd(showEmojis)
 				wg.Done()
 			}
@@ -145,15 +160,21 @@ func installSpecificPackages(packages []string, manual, showEmojis, showDebug bo
 
 	wg.Wait()
 	endTime := time.Now().UnixMilli()
+
+	// We should check this so we don't spam the output
+	// Saying which packages were downloaded
 	if manual {
 		messages.DoneInstallCmd(showEmojis, endTime-startTime)
 	}
 }
 
 func createFolderToPkg(pkg, version string) {
+	// Get the folder we store cached packages
 	dir := utils.GetStoreDir()
+	// Verify if the package is already cached
 	depCached := utils.PkgAlreadyCached(pkg, version)
 	if !depCached {
+		// If the package is not cached, we should create the folder
 		err := os.MkdirAll(dir+"/"+pkg+"/"+version, 0755)
 		if err != nil {
 			panic(err)
