@@ -40,12 +40,8 @@ jobs:
     - name: Build for MacOS arm64
       run: GOOS=darwin GOARCH=amd64 go build -o 'bin/dnpm-darwin_arm64' dnpm.go
 
-
-  archive-build-artifacts:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Use the Upload Artifact GitHub Action
-        uses: actions/upload-artifact@v2
-        with: 
-          name: assets-for-download
-          path: bin
+    - name: Use the Upload Artifact GitHub Action
+      uses: actions/upload-artifact@v2
+      with: 
+        name: assets-for-download
+        path: bin
