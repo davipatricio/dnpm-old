@@ -1,8 +1,8 @@
 package main
 
 import (
-	"dnpm/cmds"
-	"dnpm/msgs"
+	"dnpm/commands"
+	"dnpm/messages"
 	"os"
 )
 
