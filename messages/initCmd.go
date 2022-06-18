@@ -17,7 +17,6 @@ func InitCmd(showEmojis bool) {
 func InitExistsCmd(showEmojis bool) {
 	if showEmojis {
 		initCmdExistsEmojis()
-		initCmdExistsRaw()
 	} else {
 		initCmdExistsRaw()
 	}
