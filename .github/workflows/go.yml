@@ -19,20 +19,11 @@ jobs:
     - name: Build for Windows x64
       run: GOOS=windows GOARCH=amd64 go build -o 'bin/dnpm-win_x64.exe' dnpm.go
 
-    - name: Build for Windows arm64
-      run: GOOS=windows GOARCH=amd64 go build -o 'bin/dnpm-win_arm64.exe' dnpm.go
-
     - name: Build for Windows x86
       run: GOOS=windows GOARCH=amd64 go build -o 'bin/dnpm-win_x86.exe' dnpm.go
 
     - name: Build for Linux x64
       run: GOOS=linux GOARCH=amd64 go build -o 'bin/dnpm-linux_x64' dnpm.go
-
-    - name: Build for Linux arm64
-      run: GOOS=linux GOARCH=amd64 go build -o 'bin/dnpm-linux_arm64' dnpm.go
-
-    - name: Build for Linux x86
-      run: GOOS=linux GOARCH=amd64 go build -o 'bin/dnpm-linux_x86' dnpm.go
 
     - name: Build for MacOS x64
       run: GOOS=darwin GOARCH=amd64 go build -o 'bin/dnpm-darwin_x64' dnpm.go
@@ -40,8 +31,32 @@ jobs:
     - name: Build for MacOS arm64
       run: GOOS=darwin GOARCH=amd64 go build -o 'bin/dnpm-darwin_arm64' dnpm.go
 
-    - name: Use the Upload Artifact GitHub Action
-      uses: actions/upload-artifact@v2
+    - name: Upload compiled dnpm for Windows x86
+      uses: actions/upload-artifact@v3.1.0
       with: 
-        name: assets-for-download
-        path: bin
+        name: Compiled dnpm for Windows x64
+        path: bin/dnpm-win_x64.exe
+
+    - name: Upload compiled dnpm for Windows x86
+      uses: actions/upload-artifact@v3.1.0
+      with: 
+        name: Compiled dnpm for Windows x86
+        path: bin/dnpm-win_x86.exe
+
+    - name: Upload compiled dnpm for Linux x64
+      uses: actions/upload-artifact@v3.1.0
+      with: 
+        name: dnpm for Linux x64
+        path: bin/dnpm-linux_x64.exe
+
+    - name: Upload compiled dnpm for Darwin x64
+      uses: actions/upload-artifact@v3.1.0
+      with: 
+        name: dnpm for Darwin x64
+        path: bin/dnpm-darwin_x64.exe
+
+    - name: Upload compiled dnpm for Darwin arm64
+      uses: actions/upload-artifact@v3.1.0
+      with: 
+        name: dnpm for Darwin arm64
+        path: bin/dnpm-darwin_arm64.exe
