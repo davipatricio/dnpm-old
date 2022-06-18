@@ -1,7 +1,7 @@
-package cmds
+package commands
 
 import (
-	"dnpm/msgs"
+	"dnpm/messages"
 	"dnpm/utils"
 	"flag"
 	"fmt"
@@ -22,6 +22,6 @@ func RunVersionCmd() {
 	if *simplifyOutput || *simplifyOutputChar {
 		fmt.Println(utils.VERSION)
 	} else {
-		msgs.VersionCmd(*showEmojis)
+		messages.VersionCmd(*showEmojis)
 	}
 }

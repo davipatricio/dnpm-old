@@ -1,7 +1,7 @@
-package cmds
+package commands
 
 import (
-	"dnpm/msgs"
+	"dnpm/messages"
 	"dnpm/utils"
 	"flag"
 	"os"
@@ -16,23 +16,23 @@ func RunInitCmd() bool {
 	// Command code
 	workingDir, err := os.Getwd()
 	if err != nil {
-		msgs.InitErrReadingCmd(*showEmojis)
+		messages.InitErrReadingCmd(*showEmojis)
 		return false
 	}
 
 	path, found, err := utils.GetNearestPackageJSON()
 	if found && path == workingDir+"/package.json" {
-		msgs.InitExistsCmd(*showEmojis)
+		messages.InitExistsCmd(*showEmojis)
 		return false
 	}
 
 	if path != "" && !found && err != nil {
-		msgs.InitCmd(*showEmojis)
-		utils.CreateEmptyPackageJSON(path)
-		msgs.InitDoneCmd(*showEmojis)
+		messages.InitCmd(*showEmojis)
+		utils.CreateEmptyPackageJSON()
+		messages.InitDoneCmd(*showEmojis)
 		return false
 	}
 
-	msgs.InitErrReadingCmd(*showEmojis)
+	messages.InitErrReadingCmd(*showEmojis)
 	return false
 }

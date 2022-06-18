@@ -1,7 +1,7 @@
-package cmds
+package commands
 
 import (
-	"dnpm/msgs"
+	"dnpm/messages"
 	"dnpm/utils"
 	"flag"
 	"os"
@@ -21,11 +21,11 @@ func RunInstallCmd() bool {
 	if len(os.Args) <= 2 {
 		installCmd.Parse(os.Args[2:])
 		if found {
-			msgs.FoundPkgInstallCmd(*showEmojis)
+			messages.FoundPkgInstallCmd(*showEmojis)
 			installPackagesPresentOnPackageJSON(path)
 			return false
 		} else {
-			msgs.NoPkgJSONFoundInstallCmd(*showEmojis)
+			messages.NoPkgJSONFoundInstallCmd(*showEmojis)
 			return false
 		}
 	}
@@ -35,11 +35,11 @@ func RunInstallCmd() bool {
 
 		packagesArgs := installCmd.Args()
 		if len(packagesArgs) < 1 {
-			msgs.NoPkgProvidedInstallCmd(*showEmojis)
+			messages.NoPkgProvidedInstallCmd(*showEmojis)
 			return false
 		}
 
-		msgs.InstallingPkgsInstallCmd(*showEmojis, packagesArgs)
+		messages.InstallingPkgsInstallCmd(*showEmojis, packagesArgs)
 		return false
 	}
 
