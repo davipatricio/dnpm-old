@@ -17,7 +17,7 @@ func CreateEmptyPackageJSON() error {
 		return err
 	}
 
-	var buf *bytes.Buffer
+	buf := new(bytes.Buffer)
 	enc := json.NewEncoder(buf)
 	// json.MarshalIdent escapes characters like <, > and &
 	// https://stackoverflow.com/questions/28595664/how-to-stop-json-marshal-from-escaping-and
