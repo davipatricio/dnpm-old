@@ -16,23 +16,27 @@ func RunInitCmd() bool {
 	// Command code
 	workingDir, err := os.Getwd()
 	if err != nil {
+		// Tell the user that we couldn't get the working directory
 		messages.InitErrReadingCmd(*showEmojis)
 		return false
 	}
 
-	path, found, err := utils.GetNearestPackageJSON()
+	// If we find a package.json, we tell the user that a package.json already exists
+	path, found, _ := utils.GetNearestPackageJSON()
 	if found && path == workingDir+"/package.json" {
 		messages.InitExistsCmd(*showEmojis)
 		return false
 	}
 
-	if path != "" && !found && err != nil {
+	// If we didn't find a package.json, we create one
+	if !found {
+		// Notify the user that we are creating the package.json
 		messages.InitCmd(*showEmojis)
 		utils.CreateEmptyPackageJSON()
+		// Notify the user that the operation was successful
 		messages.InitDoneCmd(*showEmojis)
 		return false
 	}
 
-	messages.InitErrReadingCmd(*showEmojis)
 	return false
 }
