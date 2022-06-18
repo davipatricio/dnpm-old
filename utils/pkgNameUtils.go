@@ -22,17 +22,23 @@ func GetPkgVersionOrTag(pkgName string) string {
 		return "latest"
 	}
 
-	cleanPkgName := RemovePkgVersionRange(pkgName)
-
 	// Get everything after the @ (can contain version range operators)
-	version := cleanPkgName[strings.Index(cleanPkgName, "@")+1:]
-	if IsValidSemver(version) {
-		return version
+	version := strings.TrimPrefix(pkgName, "@")
+	version = version[strings.Index(version, "@")+1:]
+
+	cleanVersion := RemovePkgVersionRange(version)
+
+	if cleanVersion == "" || cleanVersion == "*" {
+		return "latest"
 	}
 
-	// This will probably be a tag (e.g "dev")
-	if !strings.Contains(version, ".") {
-		return version
+	if IsValidSemver(cleanVersion) {
+		return cleanVersion
+	}
+
+	// This will probably is a tag (e.g "dev")
+	if !strings.Contains(cleanVersion, ".") {
+		return cleanVersion
 	}
 
 	return ""
@@ -40,13 +46,22 @@ func GetPkgVersionOrTag(pkgName string) string {
 
 // Get the package name from the provided string
 // e.g. "typescript@nightly" -> "typescript"
+// e.g @pkg/name@version -> "@pkg/name"
 func GetPkgName(pkgName string) string {
-	if !strings.Contains(pkgName, "@") {
+	if strings.HasPrefix(pkgName, "@") {
+		slice := strings.Split(pkgName, "@")
+		if slice[2] != "" {
+			return "@" + slice[1]
+		}
 		return pkgName
 	}
 
-	// Get everything before the @
-	return pkgName[:strings.Index(pkgName, "@")]
+	if strings.Contains(pkgName, "@") {
+		return pkgName[:strings.Index(pkgName, "@")]
+	}
+
+	return pkgName
+
 }
 
 // Remove the version range operator from the version
@@ -54,8 +69,7 @@ func GetPkgName(pkgName string) string {
 func RemovePkgVersionRange(fullVersion string) string {
 	finalStr := fullVersion
 	for _, operator := range RangeOperators {
-		finalStr = strings.Replace(fullVersion, operator, "", -1)
-		break
+		finalStr = strings.ReplaceAll(finalStr, operator, "")
 	}
 
 	return finalStr
