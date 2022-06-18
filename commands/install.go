@@ -9,6 +9,8 @@ import (
 	"os"
 	"sync"
 	"time"
+
+	"github.com/davipatricio/colors/colors"
 )
 
 func RunInstallCmd() bool {
@@ -17,6 +19,7 @@ func RunInstallCmd() bool {
 	// os.Args[1] will always be "add", "install" or "i" (see dnpm.go)
 	installCmd := flag.NewFlagSet(os.Args[1], flag.ExitOnError)
 	showEmojis := installCmd.Bool("emoji", false, "Whether to show emojis on the output.")
+	showDebug := installCmd.Bool("debug", false, "Whether to show additional information on the output.")
 
 	// Command code
 	path, found, _ := utils.GetNearestPackageJSON()
@@ -50,7 +53,7 @@ func RunInstallCmd() bool {
 
 		// Notify the user that we are installing the requested packages
 		messages.InstallingPkgsInstallCmd(*showEmojis, packagesArgs)
-		installSpecificPackages(packagesArgs, true)
+		installSpecificPackages(packagesArgs, true, *showEmojis, *showDebug)
 		return false
 	}
 
@@ -64,7 +67,7 @@ func installPackagesPresentOnPackageJSON(path string) {
 	// TODO: install all packages from package.json
 }
 
-func installSpecificPackages(packages []string, manual bool) {
+func installSpecificPackages(packages []string, manual, showEmojis, showDebug bool) {
 	var wg sync.WaitGroup
 	startTime := time.Now().UnixMilli()
 
@@ -76,7 +79,7 @@ func installSpecificPackages(packages []string, manual bool) {
 			version := utils.GetPkgVersionOrTag(pkg)
 			d, _ := rest.GetPkg(name)
 			if d["error"] != nil {
-				fmt.Println("Pacote desconhecido.")
+				messages.PkgNotFoundInstallCmd(showEmojis, name)
 				wg.Done()
 				continue
 			}
@@ -97,20 +100,24 @@ func installSpecificPackages(packages []string, manual bool) {
 
 			if d["versions"].(map[string]interface{})[version] != nil {
 				_, err := os.Stat(utils.GetStoreDir() + "/" + name + "/" + version)
-				createFolderToPkg(name, version)
+				if err != nil {
+					createFolderToPkg(name, version)
+				}
 
 				versionData := d["versions"].(map[string]interface{})[version].(map[string]interface{})
 				downloadUrl := versionData["dist"].(map[string]interface{})["tarball"].(string)
 
 				go func() {
+					// If we could create the folder and if got an error
+					// Means that the package is not cached
 					if utils.PkgAlreadyCached(name, version) && err != nil {
-						fmt.Println("Baixando pacote", name, "@", version, "...")
+						installDebug("Downloading package "+name+" ("+version+")", showDebug)
 						rest.DownloadPkgTgz(downloadUrl, utils.GetTempDir()+"/"+name+"-"+version+".tgz")
-						fmt.Println("Descompactando pacote", name, "@", version, "...")
+						installDebug("Extracting package "+name+" ("+version+")", showDebug)
 						utils.DecompressTgz(utils.GetTempDir()+"/"+name+"-"+version+".tgz", utils.GetStoreDir()+"/"+name+"/"+version)
 						os.Remove(utils.GetTempDir() + "/" + name + "-" + version + ".tgz")
 					} else {
-						fmt.Println("Pacote", name, "@", version, "já está no cache e não precisou ser baixada novamente.")
+						installDebug("Package "+name+" ("+version+") is already cached", showDebug)
 					}
 					wg.Done()
 				}()
@@ -118,19 +125,19 @@ func installSpecificPackages(packages []string, manual bool) {
 				deps, ok := versionData["dependencies"].(map[string]interface{})
 				if ok {
 					for depName, depVer := range deps {
-						fmt.Println("Verificando se a dependência", depName, "@", depVer.(string), "já foi baixada alguma vez...")
+						installDebug("Verifying if dependency "+depName+" ("+depVer.(string)+") is cached", showDebug)
 						if !utils.PkgAlreadyCached(depName, utils.RemovePkgVersionRange(depVer.(string))) {
-							fmt.Println("Dependencia", depName, "nunca foi baixada anteriormente. Efetuando download (Yarn Registry)...")
+							installDebug("Dependency "+depName+" is not cached.\nDownloading dependency "+depName+" ("+depVer.(string)+")", showDebug)
 							wg.Add(1)
 							go func() {
-								installSpecificPackages([]string{depName + "@" + depVer.(string)}, false)
+								installSpecificPackages([]string{depName + "@" + depVer.(string)}, false, showEmojis, showDebug)
 								wg.Done()
 							}()
 						}
 					}
 				}
 			} else {
-				fmt.Println("Versão desconhecida.")
+				messages.VersionNotFoundInstallCmd(showEmojis)
 				wg.Done()
 			}
 		}
@@ -139,7 +146,7 @@ func installSpecificPackages(packages []string, manual bool) {
 	wg.Wait()
 	endTime := time.Now().UnixMilli()
 	if manual {
-		fmt.Println("\n\n - Tempo de instalação de todas as dependencias etc (sem cache):", endTime-startTime, "ms")
+		messages.DoneInstallCmd(showEmojis, endTime-startTime)
 	}
 }
 
@@ -151,5 +158,11 @@ func createFolderToPkg(pkg, version string) {
 		if err != nil {
 			panic(err)
 		}
+	}
+}
+
+func installDebug(info string, showDebug bool) {
+	if showDebug {
+		fmt.Println(colors.Gray(info))
 	}
 }

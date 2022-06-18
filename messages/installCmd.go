@@ -39,6 +39,61 @@ func InstallingPkgsInstallCmd(showEmojis bool, pkgs []string) {
 	}
 }
 
+func PkgNotFoundInstallCmd(showEmojis bool, pkg string) {
+	if showEmojis {
+		pkgNotFoundEmojis(pkg)
+	} else {
+		pkgNotFoundRaw(pkg)
+	}
+}
+
+func DoneInstallCmd(showEmojis bool, ms int64) {
+	if showEmojis {
+		doneOperationEmojis(ms)
+	} else {
+		doneOperationRaw(ms)
+	}
+}
+
+func VersionNotFoundInstallCmd(showEmojis bool) {
+	if showEmojis {
+		versionNotFoundEmojis()
+	} else {
+		versionNotFoundRaw()
+	}
+}
+
+/* */
+
+// Version not found
+func versionNotFoundRaw() {
+	fmt.Println(colors.Red("Version not found."))
+	fmt.Println(colors.Cyan("Please provide a valid version."))
+}
+
+func versionNotFoundEmojis() {
+	fmt.Println("🤷 " + colors.Red("Version not found."))
+	fmt.Println("ℹ️ " + colors.Cyan("Please provide a valid version."))
+}
+
+// When an operation is completed
+func doneOperationRaw(ms int64) {
+	fmt.Printf(colors.Green("Done in %vms.\n"), ms)
+}
+
+func doneOperationEmojis(ms int64) {
+	fmt.Printf("✅ "+colors.Green("Done in %vms.\n"), ms)
+}
+
+// Package not found on the registry
+func pkgNotFoundRaw(pkg string) {
+	fmt.Println(colors.Red("Package '" + pkg + "' was not found on the registry."))
+}
+
+func pkgNotFoundEmojis(pkg string) {
+	fmt.Println("🤷 " + colors.Red("Package '"+pkg+"' was not found on the registry."))
+}
+
 // No package provided
 func noPkgProvidedRaw() {
 	fmt.Println(colors.Red("No package provided."))
@@ -54,7 +109,7 @@ func noPkgProvidedEmojis() {
 func installingPkgsRaw(pkgs []string) {
 	str := "Installing packages:"
 	for _, pkg := range pkgs {
-		str += "\n  " + styles.Bold(colors.Green(pkg))
+		str += "\n  " + styles.Bold(colors.Green(pkg))+"\n\n"
 	}
 	fmt.Println(str)
 }
@@ -62,7 +117,7 @@ func installingPkgsRaw(pkgs []string) {
 func installingPkgsEmojis(pkgs []string) {
 	str := "➕ Installing packages:"
 	for _, pkg := range pkgs {
-		str += "\n📦  " + styles.Bold(colors.Green(pkg))
+		str += "\n📦  " + styles.Bold(colors.Green(pkg))+"\n\n"
 	}
 	fmt.Println(str)
 }
