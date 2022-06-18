@@ -8,7 +8,7 @@ import (
 
 func main() {
 	if len(os.Args) < 2 {
-		messages.EmptyCmd()
+		messages.EmptyCmd(true)
 		os.Exit(1)
 	}
 
@@ -19,8 +19,10 @@ func main() {
 		commands.RunInstallCmd()
 	case "init":
 		commands.RunInitCmd()
+	case "help", "h", "?":
+		messages.EmptyCmd(false)
 	default:
-		messages.EmptyCmd()
+		messages.EmptyCmd(true)
 		os.Exit(1)
 	}
 }

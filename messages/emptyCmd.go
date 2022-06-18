@@ -8,16 +8,18 @@ import (
 	"github.com/davipatricio/colors/styles"
 )
 
-func EmptyCmd() {
+func EmptyCmd(notSpecified bool) {
 	if utils.ShowEmojis() {
-		emptyCmdEmojis()
+		emptyCmdEmojis(notSpecified)
 	} else {
-		emptyCmdRaw()
+		emptyCmdRaw(notSpecified)
 	}
 }
 
-func emptyCmdRaw() {
-	fmt.Println(colors.Red("\nYou must specify a command."))
+func emptyCmdRaw(notSpecified bool) {
+	if notSpecified {
+		fmt.Println(colors.Red("\nYou must specify a command."))
+	}
 	fmt.Printf("dnpm <command>\n\nUsage:\n\n")
 
 	fmt.Println(styles.Bold("dnpm install"), "         install all the dependecies in your project")
@@ -25,8 +27,10 @@ func emptyCmdRaw() {
 	fmt.Println(styles.Bold("dnpm version"), "         shows the version of dnpm")
 }
 
-func emptyCmdEmojis() {
-	fmt.Println(colors.Red("\n❌ You must specify a command."))
+func emptyCmdEmojis(notSpecified bool) {
+	if notSpecified {
+		fmt.Println(colors.Red("\n❌ You must specify a command."))
+	}
 	fmt.Printf("dnpm <command>\n\nUsage:\n\n")
 
 	fmt.Println(colors.Green("➕"), styles.Bold("dnpm install"), "         install all the dependecies in your project")
