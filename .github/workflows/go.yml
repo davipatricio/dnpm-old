@@ -1,0 +1,51 @@
+name: Go build
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 */12 * * *'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Go
+      uses: actions/setup-go@v3
+      with:
+        go-version: 1.18
+
+    - name: Build for Windows x64
+      run: GOOS=windows GOARCH=amd64 go build -o 'bin/dnpm-win_x64.exe' dnpm.go
+
+    - name: Build for Windows arm64
+      run: GOOS=windows GOARCH=amd64 go build -o 'bin/dnpm-win_arm64.exe' dnpm.go
+
+    - name: Build for Windows x86
+      run: GOOS=windows GOARCH=amd64 go build -o 'bin/dnpm-win_x86.exe' dnpm.go
+
+    - name: Build for Linux x64
+      run: GOOS=linux GOARCH=amd64 go build -o 'bin/dnpm-linux_x64' dnpm.go
+
+    - name: Build for Linux arm64
+      run: GOOS=linux GOARCH=amd64 go build -o 'bin/dnpm-linux_arm64' dnpm.go
+
+    - name: Build for Linux x86
+      run: GOOS=linux GOARCH=amd64 go build -o 'bin/dnpm-linux_x86' dnpm.go
+
+    - name: Build for MacOS x64
+      run: GOOS=darwin GOARCH=amd64 go build -o 'bin/dnpm-darwin_x64' dnpm.go
+
+    - name: Build for MacOS arm64
+      run: GOOS=darwin GOARCH=amd64 go build -o 'bin/dnpm-darwin_arm64' dnpm.go
+
+
+  archive-build-artifacts:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Use the Upload Artifact GitHub Action
+        uses: actions/upload-artifact@v2
+        with: 
+          name: assets-for-download
+          path: bin
