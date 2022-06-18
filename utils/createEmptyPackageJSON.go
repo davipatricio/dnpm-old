@@ -2,23 +2,13 @@ package utils
 
 import (
 	"bytes"
+	"dnpm/structs"
 	"encoding/json"
 	"fmt"
 	"os"
 
 	"github.com/davipatricio/colors/colors"
 )
-
-type PackageJSONFormat struct {
-	Name            string            `json:"name"`
-	Description     string            `json:"description"`
-	Version         string            `json:"version"`
-	Author          string            `json:"author"`
-	License         string            `json:"license"`
-	Scripts         map[string]string `json:"scripts"`
-	Dependencies    map[string]string `json:"dependencies"`
-	DevDependencies map[string]string `json:"devDependencies"`
-}
 
 func CreateEmptyPackageJSON() error {
 	// Create the package.json file
@@ -33,7 +23,7 @@ func CreateEmptyPackageJSON() error {
 	// https://stackoverflow.com/questions/28595664/how-to-stop-json-marshal-from-escaping-and
 	enc.SetEscapeHTML(false)
 	enc.SetIndent("", "\t")
-	err = enc.Encode(PackageJSONFormat{
+	err = enc.Encode(structs.PackageJSONFormat{
 		Name:        "dnpm-project",
 		Description: "A project created using dnpm.",
 		Version:     "0.0.1",
