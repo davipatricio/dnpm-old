@@ -14,7 +14,13 @@ Build the binary for your platform:
 ```sh-session
 $ cd dnpm
 $ go build dnpm.go
+$ ./dnpm
 ```
+If you are a Linux user, move the file to `/usr/bin/`
+
+```sh-session
+$ sudo mv ./dnpm /usr/bin/
+
 
 ## 💻 Install from npm
 It is recommended to install dnpm through the [Node Package Manager](http://npmjs.org/), which comes bundled with [Node.js](https://nodejs.org) when you install it on your system.
