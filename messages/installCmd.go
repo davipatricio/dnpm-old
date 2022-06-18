@@ -39,6 +39,7 @@ func InstallingPkgsInstallCmd(showEmojis bool, pkgs []string) {
 	}
 }
 
+// No package provided
 func noPkgProvidedRaw() {
 	fmt.Println(colors.Red("No package provided."))
 	fmt.Println(colors.Cyan("Please provide a package to install."))
@@ -49,6 +50,7 @@ func noPkgProvidedEmojis() {
 	fmt.Println("ℹ️ " + colors.Cyan("Please provide a package to install."))
 }
 
+// Installing requested packages
 func installingPkgsRaw(pkgs []string) {
 	str := "Installing packages:"
 	for _, pkg := range pkgs {
@@ -65,6 +67,7 @@ func installingPkgsEmojis(pkgs []string) {
 	fmt.Println(str)
 }
 
+// No package.json found
 func noPkgJsonFoundRaw() {
 	fmt.Println(colors.Red("No package.json was found."))
 	fmt.Println(colors.Cyan("Please run 'dnpm init' to create a package.json file."))
@@ -75,6 +78,7 @@ func noPkgJsonFoundEmojis() {
 	fmt.Println("ℹ️ " + colors.Cyan("Please run 'dnpm init' to create a package.json file."))
 }
 
+// Installing package.json dependencies
 func foundPkgInstallRaw() {
 	fmt.Println(colors.Cyan("Installing packages present on 'package.json'"))
 }
