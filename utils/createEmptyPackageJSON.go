@@ -3,7 +3,10 @@ package utils
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"os"
+
+	"github.com/davipatricio/colors/colors"
 )
 
 type PackageJSONFormat struct {
@@ -24,7 +27,7 @@ func CreateEmptyPackageJSON() error {
 		return err
 	}
 
-	buf := new(bytes.Buffer)
+	var buf *bytes.Buffer
 	enc := json.NewEncoder(buf)
 	// json.MarshalIdent escapes characters like <, > and &
 	// https://stackoverflow.com/questions/28595664/how-to-stop-json-marshal-from-escaping-and
@@ -44,15 +47,36 @@ func CreateEmptyPackageJSON() error {
 		DevDependencies: map[string]string{},
 	})
 	if err != nil {
-		return err
+		panic(err)
 	}
 
 	// Write the package.json file
 	_, err = packageJSONFile.Write(buf.Bytes())
 	if err != nil {
+		CouldNotCreateEmptyPkgJson()
 		return err
 	}
 
 	err = packageJSONFile.Close()
+	if err != nil {
+		panic(err)
+	}
+
 	return err
+}
+
+func CouldNotCreateEmptyPkgJson() {
+	if ShowEmojis() {
+		couldNotWriteEmptyPkgJsonRaw()
+	} else {
+		couldNotWriteEmptyPkgJsonEmojis()
+	}
+}
+
+func couldNotWriteEmptyPkgJsonRaw() {
+	fmt.Println(colors.Red("Could not write package.json file."))
+}
+
+func couldNotWriteEmptyPkgJsonEmojis() {
+	fmt.Println("❌ ", colors.Red("Could not write package.json file."))
 }
