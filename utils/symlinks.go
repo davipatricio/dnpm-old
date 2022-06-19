@@ -6,7 +6,7 @@ func CreateSymlink(src, dst string) error {
 	return os.Symlink(src, dst)
 }
 
-func RemoveSymlink(src, dst string) error {
+func RemoveSymlink(dst string) error {
 	return os.Remove(dst)
 }
 
