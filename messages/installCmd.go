@@ -109,7 +109,7 @@ func noPkgProvidedEmojis() {
 func installingPkgsRaw(pkgs []string) {
 	str := "Installing packages:"
 	for _, pkg := range pkgs {
-		str += "\n  " + styles.Bold(colors.Green(pkg))+"\n\n"
+		str += "\n  " + styles.Bold(colors.Green(pkg)) + "\n\n"
 	}
 	fmt.Println(str)
 }
@@ -117,7 +117,7 @@ func installingPkgsRaw(pkgs []string) {
 func installingPkgsEmojis(pkgs []string) {
 	str := "➕ Installing packages:"
 	for _, pkg := range pkgs {
-		str += "\n📦  " + styles.Bold(colors.Green(pkg))+"\n\n"
+		str += "\n📦  " + styles.Bold(colors.Green(pkg)) + "\n\n"
 	}
 	fmt.Println(str)
 }

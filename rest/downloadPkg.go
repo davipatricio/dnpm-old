@@ -7,7 +7,7 @@ import (
 )
 
 // Download the file from the given url and save it to the given path.
-func DownloadPkgTgz(url, pathToSave string) (error) {
+func DownloadPkgTgz(url, pathToSave string) error {
 	// Create the file
 	out, err := os.Create(pathToSave)
 	if err != nil {
