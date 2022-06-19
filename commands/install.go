@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"sync"
 	"time"
 
 	"github.com/davipatricio/colors/colors"
@@ -58,13 +57,12 @@ func RunInstallCmd() bool {
 		os.Mkdir("node_modules", 0755)
 		// Notify the user that we are installing the requested packages
 		messages.InstallingPkgsInstallCmd(*showEmojis, packagesArgs)
-		var wg sync.WaitGroup
-		wg.Add(1)
+		ch := make(chan bool)
 		go func() {
 			installSpecificPackages(packagesArgs, false, true, *showEmojis, *showDebug)
-			wg.Done()
+			ch <- true
 		}()
-		wg.Wait()
+		<-ch
 		return false
 	}
 
@@ -80,7 +78,13 @@ func installPackagesPresentOnPackageJSON(path string) {
 }
 
 func installSpecificPackages(packages []string, isDep, manual, showEmojis, showDebug bool) {
-	startTime := time.Now().UnixMilli()
+	startTime := int64(0)
+
+	// avoid allocate memory
+	if manual {
+		startTime = time.Now().UnixMilli()
+	}
+
 	for _, rawPkgString := range packages {
 		// Get the package name from the provided string e.g. "typescript@nightly" -> "typescript"
 		pkgName := utils.GetPkgName(rawPkgString)
@@ -127,25 +131,23 @@ func installSpecificPackages(packages []string, isDep, manual, showEmojis, showD
 
 		// If we didn't queued the package yet, we should queue it
 		if !isAlreadyInstalling(pkgName, pkgVersion) {
-			createEmptyStoreFolder()
-			createEmptyTempFolder()
-
 			// If we have the list of versions, we should check if the provided version is valid
 			if d["versions"].(map[string]interface{})[pkgVersion] != nil {
 				// Verify if the package is already cached
 				depCached := isPkgAlreadyCached(pkgName, pkgVersion)
+				installToNodeModules(pkgOrgName, pkgName, utils.GetStoreDir()+"/"+pkgName+"/"+pkgVersion+"/package")
 
 				if depCached {
 					installDebug("Package "+pkgName+" ("+pkgVersion+") is already cached", showDebug)
-					installToNodeModules(pkgOrgName, pkgName, utils.GetStoreDir()+"/"+pkgName+"/"+pkgVersion+"/package")
 				} else {
+					createEmptyStoreFolder()
+					createEmptyTempFolder()
+
 					setAlreadyInstalling(pkgName, pkgVersion)
 
 					// If the folder doesn't exist, we should create it
 					createEmptyFolderForPkg(pkgName, pkgVersion)
 					createTempFolderForPkg(pkgName, pkgVersion)
-
-					installToNodeModules(pkgOrgName, pkgName, utils.GetStoreDir()+"/"+pkgName+"/"+pkgVersion+"/package")
 
 					versionData := d["versions"].(map[string]interface{})[pkgVersion].(map[string]interface{})
 					downloadUrl := versionData["dist"].(map[string]interface{})["tarball"].(string)
@@ -153,9 +155,8 @@ func installSpecificPackages(packages []string, isDep, manual, showEmojis, showD
 					pathWithoutDuplicatedName := utils.RemoveLastSubstring(utils.GetStoreDir()+"/"+pkgName+"/"+pkgVersion, "/"+pkgWithoutOrgName)
 					pathWithoutDuplicatedName = utils.RemoveLastSubstring(pathWithoutDuplicatedName, "\\"+pkgWithoutOrgName)
 
-					var wg sync.WaitGroup
-					wg.Add(1)
-					go func() {
+					ch := make(chan bool)
+					go func(c chan bool) {
 						installDebug("Downloading package "+pkgName+" ("+pkgVersion+")", showDebug)
 						// Download the tgz to the temp folder
 						rest.DownloadPkgTgz(downloadUrl, utils.GetTempDir()+"/"+pkgName+"/"+pkgVersion+".tgz")
@@ -169,43 +170,65 @@ func installSpecificPackages(packages []string, isDep, manual, showEmojis, showD
 						go os.Remove(utils.GetTempDir() + "/" + pkgName + "/" + pkgVersion + ".tgz")
 						// Install the package to the node_modules folder
 						installDebug("Installing package "+pkgName+" ("+pkgVersion+")", showDebug)
-						wg.Done()
-					}()
-					wg.Wait()
+						c <- true
+					}(ch)
+					<-ch
 
 					// Check if there are dependencies
 					deps, ok := versionData["dependencies"].(map[string]interface{})
 					if ok {
 						// Loop through each dependencies
-						for depName, depVer := range deps {
-							var wg3 sync.WaitGroup
-							wg3.Add(1)
-							go func() {
+						chmain := make(chan bool)
+						go func(c chan bool) {
+							for depName, depVer := range deps {
+								ch2 := make(chan bool)
 								cleanDepVer := utils.RemovePkgVersionRange(depVer.(string))
-								installDebug("Verifying if dependency "+depName+" ("+cleanDepVer+") is cached", showDebug)
-								// If the dependency is not cached, we should download it
-								if !isAlreadyInstalling(depName, cleanDepVer) && !isPkgAlreadyCached(depName, cleanDepVer) {
-									installDebug("Dependency "+depName+" is not cached.\nDownloading dependency "+depName+" ("+cleanDepVer+")", showDebug)
-									// Call this function again to download the dependency
-									// So we don't have duplicated code
-									installSpecificPackages([]string{depName + "@" + cleanDepVer}, true, false, showEmojis, showDebug)
-								}
-								wg3.Done()
-							}()
-							wg3.Wait()
-						}
+								go downloadDeps([]string{depName + "@" + cleanDepVer}, depName, cleanDepVer, showEmojis, showDebug, ch2)
+								<-ch2
+							}
+							c <- true
+						}(chmain)
+						<-chmain
+					}
+
+					devDeps, ok := versionData["devDependencies"].(map[string]interface{})
+					if ok && !isDep {
+						// Loop through each dependencies
+						chmain2 := make(chan bool)
+						go func(c chan bool) {
+							for depName, depVer := range devDeps {
+								ch2 := make(chan bool)
+								cleanDepVer := utils.RemovePkgVersionRange(depVer.(string))
+								go downloadDeps([]string{depName + "@" + cleanDepVer}, depName, cleanDepVer, showEmojis, showDebug, ch2)
+								<-ch2
+							}
+							c <- true
+						}(chmain2)
+						<-chmain2
 					}
 				}
 			}
 		}
 	}
-	endTime := time.Now().UnixMilli()
 
-	// We should check this so we don't spam the output
-	// Saying which packages were downloaded
 	if manual {
+		endTime := time.Now().UnixMilli()
+		// We should check this so we don't spam the output
+		// Saying which packages were downloaded
 		messages.DoneInstallCmd(showEmojis, endTime-startTime)
 	}
+}
+
+func downloadDeps(deps []string, depName, depVer string, showEmojis, showDebug bool, ch chan bool) {
+	installDebug("Verifying if dependency "+depName+" ("+depVer+") is cached", showDebug)
+	// If the dependency is not cached, we should download it
+	if !isAlreadyInstalling(depName, depVer) && !isPkgAlreadyCached(depName, depVer) {
+		installDebug("Dependency "+depName+" is not cached.\nDownloading dependency "+depName+" ("+depVer+")", showDebug)
+		// Call this function again to download the dependency
+		// So we don't have duplicated code
+		installSpecificPackages([]string{depName + "@" + depVer}, true, false, showEmojis, showDebug)
+	}
+	ch <- true
 }
 
 // Check if a package is installing
@@ -289,10 +312,7 @@ func createTempFolderForPkg(pkg, version string) {
 	// Get the folder we store cached packages
 	dir := utils.GetTempDir()
 	// If the package is not cached, we should create the folder
-	err := os.MkdirAll(dir+"/"+pkg, 0755)
-	if err != nil {
-		panic(err)
-	}
+	os.MkdirAll(dir+"/"+pkg, 0755)
 }
 
 func installToNodeModules(org, pkg, dir string) {
@@ -304,15 +324,9 @@ func installToNodeModules(org, pkg, dir string) {
 	} else {
 		_, err := os.Stat("node_modules/" + org)
 		if err != nil {
-			err = os.MkdirAll("node_modules/"+org, os.ModePerm)
-			if err != nil {
-				panic(err)
-			}
+			os.MkdirAll("node_modules/"+org, os.ModePerm)
 		}
-		err = utils.CreateSymlink(dir, "node_modules/"+pkg)
-		if err != nil {
-			fmt.Println("symlink", err)
-		}
+		utils.CreateSymlink(dir, "node_modules/"+pkg)
 	}
 }
 
