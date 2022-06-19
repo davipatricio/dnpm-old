@@ -123,7 +123,7 @@ func installSpecificPackages(packages []string, isDep, manual, showEmojis, showD
 			if d["versions"].(map[string]interface{})[pkgVersion] == nil && isDep {
 				pkgVersion = latestVersion
 				if !isAlreadyInstalling(pkgName, pkgVersion) {
-					fmt.Println(colors.Yellow("Depedency " + pkgName + " does not has version " + pkgVersion + ". Using the latest version!"))
+					installDebug(" !!! Depedency " + pkgName + " does not has version " + pkgVersion + ". Using the latest version!", showDebug)
 				}
 			}
 		}
@@ -314,10 +314,7 @@ func createTempFolderForPkg(pkg string) {
 
 func installToNodeModules(org, pkg, dir string) {
 	if org == "" {
-		err := utils.CreateSymlink(dir, "node_modules/"+pkg)
-		if err != nil {
-			fmt.Println("symlink", err)
-		}
+		utils.CreateSymlink(dir, "node_modules/"+pkg)
 	} else {
 		_, err := os.Stat("node_modules/" + org)
 		if err != nil {
