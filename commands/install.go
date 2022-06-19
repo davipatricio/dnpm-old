@@ -6,12 +6,15 @@ import (
 	"dnpm/utils"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"sync"
 	"time"
 
 	"github.com/davipatricio/colors/colors"
 )
+
+var alreadyDownloaded = make(map[string]bool)
 
 func RunInstallCmd() bool {
 	// Argument parsing
@@ -31,6 +34,7 @@ func RunInstallCmd() bool {
 		// and install all dependencies and devDependecies.
 		if found {
 			messages.FoundPkgInstallCmd(*showEmojis)
+			os.Mkdir("node_modules", 0755)
 			installPackagesPresentOnPackageJSON(path)
 			return false
 		} else {
@@ -51,9 +55,16 @@ func RunInstallCmd() bool {
 			return false
 		}
 
+		os.Mkdir("node_modules", 0755)
 		// Notify the user that we are installing the requested packages
 		messages.InstallingPkgsInstallCmd(*showEmojis, packagesArgs)
-		installSpecificPackages(packagesArgs, true, *showEmojis, *showDebug)
+		var wg sync.WaitGroup
+		wg.Add(1)
+		go func() {
+			installSpecificPackages(packagesArgs, false, true, *showEmojis, *showDebug)
+			wg.Done()
+		}()
+		wg.Wait()
 		return false
 	}
 
@@ -68,97 +79,126 @@ func installPackagesPresentOnPackageJSON(path string) {
 	// If this function is called, means that we found a package.json and no packages/arguments were provided
 }
 
-func installSpecificPackages(packages []string, manual, showEmojis, showDebug bool) {
-	var wg sync.WaitGroup
+func installSpecificPackages(packages []string, isDep, manual, showEmojis, showDebug bool) {
 	startTime := time.Now().UnixMilli()
+	for _, rawPkgString := range packages {
+		// Get the package name from the provided string e.g. "typescript@nightly" -> "typescript"
+		pkgName := utils.GetPkgName(rawPkgString)
+		// Get the package name from the provided string e.g. "@myorg/mypkg@nightly" -> "mypkg"
+		pkgWithoutOrgName := utils.RemoveOrgName(pkgName)
+		// Empty string if the package doesn't have an org
+		pkgOrgName := utils.GetOrgName(pkgName)
+		// Get the version from the provided string e.g. "typescript@nightly" -> "nightly"
+		pkgVersion := utils.GetPkgVersionOrTag(rawPkgString)
+		// Make a request to the Yarn registry requesting the package info
+		d, _ := rest.GetPkg(pkgName)
 
-	wg.Add(1)
-	// Spawn a goroutine to download the packages to download packages faster
-	go func() {
-		for _, pkg := range packages {
-			// Get the package name from the provided string e.g. "typescript@nightly" -> "typescript"
-			name := utils.GetPkgName(pkg)
-			// Get the version from the provided string e.g. "typescript@nightly" -> "nightly"
-			version := utils.GetPkgVersionOrTag(pkg)
-			// Make a request to the Yarn registry requesting the package info
-			d, _ := rest.GetPkg(name)
-			if d["error"] != nil {
-				messages.PkgNotFoundInstallCmd(showEmojis, name)
-				wg.Done()
-				continue
+		if d["error"] != nil {
+			messages.PkgNotFoundInstallCmd(showEmojis, pkgName)
+			continue
+		}
+
+		latestVersion := ""
+
+		// If there the package has a tag that is the same as the provided version,
+		// we should install that tag instead of the version.
+		if d["dist-tags"] != nil {
+			distTags := d["dist-tags"].(map[string]interface{})
+			latestVersion = distTags["latest"].(string)
+
+			// If no version was provided, use the latest version
+			if pkgVersion == "" {
+				// Get the property latest from d.dist-tags
+				pkgVersion = distTags["latest"].(string)
+			} else if distTags[pkgVersion] != nil {
+				// Get the version of the tag
+				pkgVersion = distTags[pkgVersion].(string)
 			}
 
-			// If there the package has a tag that is the same as the provided version,
-			// we should install that tag instead of the version.
-			if d["dist-tags"] != nil {
-				distTags := d["dist-tags"].(map[string]interface{})
-				// If no version was provided, use the latest version
-				if version == "" {
-					// Get the property latest from d.dist-tags
-					version = distTags["latest"].(string)
-				} else if distTags[version] != nil {
-					// Get the version of the tag
-					version = distTags[version].(string)
+			// If the requested version of a dependency is not available
+			// we should try to install the latest version
+			if d["versions"].(map[string]interface{})[pkgVersion] == nil && isDep {
+				pkgVersion = latestVersion
+				if !isAlreadyInstalling(pkgName, pkgVersion) {
+					fmt.Println(colors.Yellow("Depedency " + pkgName + " does not has version " + pkgVersion + ". Using the latest version!"))
 				}
 			}
+		}
+
+		// If we didn't queued the package yet, we should queue it
+		if !isAlreadyInstalling(pkgName, pkgVersion) {
+			createEmptyStoreFolder()
+			createEmptyTempFolder()
 
 			// If we have the list of versions, we should check if the provided version is valid
-			if d["versions"].(map[string]interface{})[version] != nil {
+			if d["versions"].(map[string]interface{})[pkgVersion] != nil {
 				// Verify if the package is already cached
-				_, err := os.Stat(utils.GetStoreDir() + "/" + name + "/" + version)
-				// If the folder doesn't exist, we should create it
-				if err != nil {
-					createFolderToPkg(name, version)
-				}
+				depCached := isPkgAlreadyCached(pkgName, pkgVersion)
 
-				versionData := d["versions"].(map[string]interface{})[version].(map[string]interface{})
-				downloadUrl := versionData["dist"].(map[string]interface{})["tarball"].(string)
+				if depCached {
+					installDebug("Package "+pkgName+" ("+pkgVersion+") is already cached", showDebug)
+					installToNodeModules(pkgOrgName, pkgName, utils.GetStoreDir()+"/"+pkgName+"/"+pkgVersion+"/package")
+				} else {
+					setAlreadyInstalling(pkgName, pkgVersion)
 
-				go func() {
-					// If we could create the folder and if got an error means that the package is not cached
-					if utils.PkgAlreadyCached(name, version) && err != nil {
-						installDebug("Downloading package "+name+" ("+version+")", showDebug)
+					// If the folder doesn't exist, we should create it
+					createEmptyFolderForPkg(pkgName, pkgVersion)
+					createTempFolderForPkg(pkgName, pkgVersion)
+
+					installToNodeModules(pkgOrgName, pkgName, utils.GetStoreDir()+"/"+pkgName+"/"+pkgVersion+"/package")
+
+					versionData := d["versions"].(map[string]interface{})[pkgVersion].(map[string]interface{})
+					downloadUrl := versionData["dist"].(map[string]interface{})["tarball"].(string)
+					// "@types\node\18.0.0\node" -> "@types\node\18.0.0"
+					pathWithoutDuplicatedName := utils.RemoveLastSubstring(utils.GetStoreDir()+"/"+pkgName+"/"+pkgVersion, "/"+pkgWithoutOrgName)
+					pathWithoutDuplicatedName = utils.RemoveLastSubstring(pathWithoutDuplicatedName, "\\"+pkgWithoutOrgName)
+
+					var wg sync.WaitGroup
+					wg.Add(1)
+					go func() {
+						installDebug("Downloading package "+pkgName+" ("+pkgVersion+")", showDebug)
 						// Download the tgz to the temp folder
-						rest.DownloadPkgTgz(downloadUrl, utils.GetTempDir()+"/"+name+"-"+version+".tgz")
-						installDebug("Extracting package "+name+" ("+version+")", showDebug)
+						rest.DownloadPkgTgz(downloadUrl, utils.GetTempDir()+"/"+pkgName+"/"+pkgVersion+".tgz")
+						installDebug("Extracting package "+pkgName+" ("+pkgVersion+")", showDebug)
 						// Extract the tgz to the store folder
-						utils.DecompressTgz(utils.GetTempDir()+"/"+name+"-"+version+".tgz", utils.GetStoreDir()+"/"+name+"/"+version)
-						// Remove the temp tgz
-						os.Remove(utils.GetTempDir() + "/" + name + "-" + version + ".tgz")
-					} else {
-						installDebug("Package "+name+" ("+version+") is already cached", showDebug)
-					}
-					wg.Done()
-				}()
+						utils.DecompressTgz(utils.GetTempDir()+"/"+pkgName+"/"+pkgVersion+".tgz", pathWithoutDuplicatedName)
+						setAlreadyCached(pkgName, pkgVersion)
+						removeAlreadyInstalling(pkgName, pkgVersion)
 
-				// Check if there are dependencies
-				deps, ok := versionData["dependencies"].(map[string]interface{})
-				if ok {
-					// Loop through each dependencies
-					for depName, depVer := range deps {
-						installDebug("Verifying if dependency "+depName+" ("+depVer.(string)+") is cached", showDebug)
-						// If the dependency is not cached, we should download it
-						if !utils.PkgAlreadyCached(depName, utils.RemovePkgVersionRange(depVer.(string))) {
-							installDebug("Dependency "+depName+" is not cached.\nDownloading dependency "+depName+" ("+depVer.(string)+")", showDebug)
-							wg.Add(1)
+						// Remove the temp tgz
+						go os.Remove(utils.GetTempDir() + "/" + pkgName + "/" + pkgVersion + ".tgz")
+						// Install the package to the node_modules folder
+						installDebug("Installing package "+pkgName+" ("+pkgVersion+")", showDebug)
+						wg.Done()
+					}()
+					wg.Wait()
+
+					// Check if there are dependencies
+					deps, ok := versionData["dependencies"].(map[string]interface{})
+					if ok {
+						// Loop through each dependencies
+						for depName, depVer := range deps {
+							var wg3 sync.WaitGroup
+							wg3.Add(1)
 							go func() {
-								// Call this function again to download the dependency
-								// So we don't have duplicated code
-								installSpecificPackages([]string{depName + "@" + depVer.(string)}, false, showEmojis, showDebug)
-								wg.Done()
+								cleanDepVer := utils.RemovePkgVersionRange(depVer.(string))
+								installDebug("Verifying if dependency "+depName+" ("+cleanDepVer+") is cached", showDebug)
+								// If the dependency is not cached, we should download it
+								if !isAlreadyInstalling(depName, cleanDepVer) && !isPkgAlreadyCached(depName, cleanDepVer) {
+									installDebug("Dependency "+depName+" is not cached.\nDownloading dependency "+depName+" ("+cleanDepVer+")", showDebug)
+									// Call this function again to download the dependency
+									// So we don't have duplicated code
+									installSpecificPackages([]string{depName + "@" + cleanDepVer}, true, false, showEmojis, showDebug)
+								}
+								wg3.Done()
 							}()
+							wg3.Wait()
 						}
 					}
 				}
-			} else {
-				// If for some reason, we cant get the version list (server down?), warn the user
-				messages.VersionNotFoundInstallCmd(showEmojis)
-				wg.Done()
 			}
 		}
-	}()
-
-	wg.Wait()
+	}
 	endTime := time.Now().UnixMilli()
 
 	// We should check this so we don't spam the output
@@ -168,16 +208,110 @@ func installSpecificPackages(packages []string, manual, showEmojis, showDebug bo
 	}
 }
 
-func createFolderToPkg(pkg, version string) {
+// Check if a package is installing
+func isAlreadyInstalling(pkg, version string) bool {
+	// Get the folder we store cached packages
+	dir := utils.GetStoreDir()
+	_, err := os.Stat(dir + "/" + pkg + "/" + version + "/package/.dnpm-installing")
+	return err == nil
+}
+
+func setAlreadyInstalling(pkg, version string) {
+	// Get the folder we store cached packages
+	dir := utils.GetStoreDir()
+	// Create the file
+	ioutil.WriteFile(dir+"/"+pkg+"/"+version+"/package/.dnpm-installing", []byte(""), 0644)
+}
+
+func removeAlreadyInstalling(pkg, version string) {
+	// Get the folder we store cached packages
+	dir := utils.GetStoreDir()
+	// Remove the file
+	os.Remove(dir + "/" + pkg + "/" + version + "/package/.dnpm-installing")
+}
+
+// Check if a package already was cached
+func isPkgAlreadyCached(pkg, version string) bool {
+	storeDir := utils.GetStoreDir()
+	_, err := os.Stat(storeDir + "/" + pkg + "/" + version + "/package")
+	_, err2 := os.Stat(storeDir + "/" + pkg + "/" + version + "/package/.dnpm-download-complete")
+	return err == nil && err2 == nil
+}
+
+func setAlreadyCached(pkg, version string) {
+	// Get the folder we store cached packages
+	dir := utils.GetStoreDir()
+	// Create the file
+	ioutil.WriteFile(dir+"/"+pkg+"/"+version+"/package/.dnpm-download-complete", []byte(""), 0644)
+}
+
+// Create a cached folder for a package
+func createEmptyFolderForPkg(pkg, version string) {
 	// Get the folder we store cached packages
 	dir := utils.GetStoreDir()
 	// Verify if the package is already cached
-	depCached := utils.PkgAlreadyCached(pkg, version)
+	depCached := isPkgAlreadyCached(pkg, version)
 	if !depCached {
 		// If the package is not cached, we should create the folder
-		err := os.MkdirAll(dir+"/"+pkg+"/"+version, 0755)
+		err := os.MkdirAll(dir+"/"+pkg+"/"+version+"/package", 0755)
 		if err != nil {
 			panic(err)
+		}
+	}
+}
+
+func createEmptyStoreFolder() {
+	storeDir := utils.GetStoreDir()
+	// Verify if the store folder exists
+	_, err := os.Stat(storeDir)
+	if err != nil {
+		err = os.MkdirAll(storeDir, os.ModePerm)
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
+// Create a temp folder for a package that is being downloaded
+func createEmptyTempFolder() {
+	tempDir := utils.GetTempDir()
+	// Verify if the temp folder exists
+	_, err := os.Stat(tempDir)
+	if err != nil {
+		err = os.MkdirAll(tempDir, os.ModePerm)
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
+func createTempFolderForPkg(pkg, version string) {
+	// Get the folder we store cached packages
+	dir := utils.GetTempDir()
+	// If the package is not cached, we should create the folder
+	err := os.MkdirAll(dir+"/"+pkg, 0755)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func installToNodeModules(org, pkg, dir string) {
+	if org == "" {
+		err := utils.CreateSymlink(dir, "node_modules/"+pkg)
+		if err != nil {
+			fmt.Println("symlink", err)
+		}
+	} else {
+		_, err := os.Stat("node_modules/" + org)
+		if err != nil {
+			err = os.MkdirAll("node_modules/"+org, os.ModePerm)
+			if err != nil {
+				panic(err)
+			}
+		}
+		err = utils.CreateSymlink(dir, "node_modules/"+pkg)
+		if err != nil {
+			fmt.Println("symlink", err)
 		}
 	}
 }
