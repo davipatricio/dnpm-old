@@ -22,6 +22,8 @@ func RunInstallCmd() bool {
 	installCmd := flag.NewFlagSet(os.Args[1], flag.ExitOnError)
 	showEmojis := installCmd.Bool("emoji", false, "Whether to show emojis on the output.")
 	showDebug := installCmd.Bool("debug", false, "Whether to show additional information on the output.")
+	downloadDev := installCmd.Bool("download-dev", false, "Whether to download dev depedencies.")
+	downloadOptionalDep := installCmd.Bool("download-opt", false, "Whether to download optional depedencies.")
 
 	// Command code
 	path, found, _ := utils.GetNearestPackageJSON()
@@ -59,7 +61,7 @@ func RunInstallCmd() bool {
 		messages.InstallingPkgsInstallCmd(*showEmojis, packagesArgs)
 		ch := make(chan bool)
 		go func() {
-			installSpecificPackages(packagesArgs, false, true, *showEmojis, *showDebug)
+			installSpecificPackages(packagesArgs, false, true, *showEmojis, *showDebug, *downloadDev, *downloadOptionalDep)
 			ch <- true
 		}()
 		<-ch
@@ -77,7 +79,7 @@ func installPackagesPresentOnPackageJSON(path string) {
 	// If this function is called, means that we found a package.json and no packages/arguments were provided
 }
 
-func installSpecificPackages(packages []string, isDep, manual, showEmojis, showDebug bool) {
+func installSpecificPackages(packages []string, isDep, manual, showEmojis, showDebug, downloadDev, downloadOptionalDep bool) {
 	startTime := int64(0)
 
 	// avoid allocate memory
@@ -192,11 +194,27 @@ func installSpecificPackages(packages []string, isDep, manual, showEmojis, showD
 					}
 
 					devDeps, ok := versionData["devDependencies"].(map[string]interface{})
-					if ok && !isDep {
+					if downloadDev && ok && !isDep {
 						// Loop through each dependencies
 						chmain2 := make(chan bool)
 						go func(c chan bool) {
 							for depName, depVer := range devDeps {
+								ch2 := make(chan bool)
+								cleanDepVer := utils.RemovePkgVersionRange(depVer.(string))
+								go downloadDeps([]string{depName + "@" + cleanDepVer}, depName, cleanDepVer, showEmojis, showDebug, ch2)
+								<-ch2
+							}
+							c <- true
+						}(chmain2)
+						<-chmain2
+					}
+
+					optDeps, ok := versionData["optionalDependencies"].(map[string]interface{})
+					if downloadOptionalDep && ok && !isDep {
+						// Loop through each dependencies
+						chmain2 := make(chan bool)
+						go func(c chan bool) {
+							for depName, depVer := range optDeps {
 								ch2 := make(chan bool)
 								cleanDepVer := utils.RemovePkgVersionRange(depVer.(string))
 								go downloadDeps([]string{depName + "@" + cleanDepVer}, depName, cleanDepVer, showEmojis, showDebug, ch2)
@@ -226,7 +244,7 @@ func downloadDeps(deps []string, depName, depVer string, showEmojis, showDebug b
 		installDebug("Dependency "+depName+" is not cached.\nDownloading dependency "+depName+" ("+depVer+")", showDebug)
 		// Call this function again to download the dependency
 		// So we don't have duplicated code
-		installSpecificPackages([]string{depName + "@" + depVer}, true, false, showEmojis, showDebug)
+		installSpecificPackages([]string{depName + "@" + depVer}, true, false, showEmojis, showDebug, false, false)
 	}
 	ch <- true
 }
