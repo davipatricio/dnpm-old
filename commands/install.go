@@ -147,7 +147,7 @@ func installSpecificPackages(packages []string, isDep, manual, showEmojis, showD
 
 					// If the folder doesn't exist, we should create it
 					createEmptyFolderForPkg(pkgName, pkgVersion)
-					createTempFolderForPkg(pkgName, pkgVersion)
+					createTempFolderForPkg(pkgName)
 
 					versionData := d["versions"].(map[string]interface{})[pkgVersion].(map[string]interface{})
 					downloadUrl := versionData["dist"].(map[string]interface{})["tarball"].(string)
@@ -183,7 +183,7 @@ func installSpecificPackages(packages []string, isDep, manual, showEmojis, showD
 							for depName, depVer := range deps {
 								ch2 := make(chan bool)
 								cleanDepVer := utils.RemovePkgVersionRange(depVer.(string))
-								go downloadDeps([]string{depName + "@" + cleanDepVer}, depName, cleanDepVer, showEmojis, showDebug, ch2)
+								go downloadDeps(depName, cleanDepVer, showEmojis, showDebug, ch2)
 								<-ch2
 							}
 							c <- true
@@ -199,7 +199,7 @@ func installSpecificPackages(packages []string, isDep, manual, showEmojis, showD
 							for depName, depVer := range devDeps {
 								ch2 := make(chan bool)
 								cleanDepVer := utils.RemovePkgVersionRange(depVer.(string))
-								go downloadDeps([]string{depName + "@" + cleanDepVer}, depName, cleanDepVer, showEmojis, showDebug, ch2)
+								go downloadDeps(depName, cleanDepVer, showEmojis, showDebug, ch2)
 								<-ch2
 							}
 							c <- true
@@ -215,7 +215,7 @@ func installSpecificPackages(packages []string, isDep, manual, showEmojis, showD
 							for depName, depVer := range optDeps {
 								ch2 := make(chan bool)
 								cleanDepVer := utils.RemovePkgVersionRange(depVer.(string))
-								go downloadDeps([]string{depName + "@" + cleanDepVer}, depName, cleanDepVer, showEmojis, showDebug, ch2)
+								go downloadDeps(depName, cleanDepVer, showEmojis, showDebug, ch2)
 								<-ch2
 							}
 							c <- true
@@ -235,7 +235,7 @@ func installSpecificPackages(packages []string, isDep, manual, showEmojis, showD
 	}
 }
 
-func downloadDeps(deps []string, depName, depVer string, showEmojis, showDebug bool, ch chan bool) {
+func downloadDeps(depName, depVer string, showEmojis, showDebug bool, ch chan bool) {
 	installDebug("Verifying if dependency "+depName+" ("+depVer+") is cached", showDebug)
 	// If the dependency is not cached, we should download it
 	if !isAlreadyInstalling(depName, depVer) && !isPkgAlreadyCached(depName, depVer) {
@@ -324,7 +324,7 @@ func createEmptyTempFolder() {
 	}
 }
 
-func createTempFolderForPkg(pkg, version string) {
+func createTempFolderForPkg(pkg string) {
 	// Get the folder we store cached packages
 	dir := utils.GetTempDir()
 	// If the package is not cached, we should create the folder
