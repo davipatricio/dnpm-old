@@ -177,50 +177,17 @@ func installSpecificPackages(packages []string, isDep, manual, showEmojis, showD
 					// Check if there are dependencies
 					deps, ok := versionData["dependencies"].(map[string]interface{})
 					if ok {
-						// Loop through each dependencies
-						chmain := make(chan bool)
-						go func(c chan bool) {
-							for depName, depVer := range deps {
-								ch2 := make(chan bool)
-								cleanDepVer := utils.RemovePkgVersionRange(depVer.(string))
-								go downloadDeps(depName, cleanDepVer, showEmojis, showDebug, ch2)
-								<-ch2
-							}
-							c <- true
-						}(chmain)
-						<-chmain
+						loopAndDownloadDeps(deps, showEmojis, showDebug)
 					}
 
 					devDeps, ok := versionData["devDependencies"].(map[string]interface{})
 					if downloadDev && ok && !isDep {
-						// Loop through each dependencies
-						chmain2 := make(chan bool)
-						go func(c chan bool) {
-							for depName, depVer := range devDeps {
-								ch2 := make(chan bool)
-								cleanDepVer := utils.RemovePkgVersionRange(depVer.(string))
-								go downloadDeps(depName, cleanDepVer, showEmojis, showDebug, ch2)
-								<-ch2
-							}
-							c <- true
-						}(chmain2)
-						<-chmain2
+						loopAndDownloadDeps(devDeps, showEmojis, showDebug)
 					}
 
 					optDeps, ok := versionData["optionalDependencies"].(map[string]interface{})
 					if downloadOptionalDep && ok && !isDep {
-						// Loop through each dependencies
-						chmain2 := make(chan bool)
-						go func(c chan bool) {
-							for depName, depVer := range optDeps {
-								ch2 := make(chan bool)
-								cleanDepVer := utils.RemovePkgVersionRange(depVer.(string))
-								go downloadDeps(depName, cleanDepVer, showEmojis, showDebug, ch2)
-								<-ch2
-							}
-							c <- true
-						}(chmain2)
-						<-chmain2
+						loopAndDownloadDeps(optDeps, showEmojis, showDebug)
 					}
 				}
 			}
@@ -233,6 +200,21 @@ func installSpecificPackages(packages []string, isDep, manual, showEmojis, showD
 		// Saying which packages were downloaded
 		messages.DoneInstallCmd(showEmojis, endTime-startTime)
 	}
+}
+
+func loopAndDownloadDeps(deps map[string]interface{}, showEmojis, showDebug bool) {
+	// Loop through each dependencies
+	ch := make(chan bool)
+	go func(c chan bool) {
+		for depName, depVer := range deps {
+			ch2 := make(chan bool)
+			cleanDepVer := utils.RemovePkgVersionRange(depVer.(string))
+			go downloadDeps(depName, cleanDepVer, showEmojis, showDebug, ch2)
+			<-ch2
+		}
+		c <- true
+	}(ch)
+	<-ch
 }
 
 func downloadDeps(depName, depVer string, showEmojis, showDebug bool, ch chan bool) {
