@@ -10,6 +10,7 @@ var RangeOperators = []string{">=", ">", "<=", "<", "~", "^"}
 // https://semver.org/#is-there-a-suggested-regular-expression-regex-to-check-a-semver-string
 var SemverRegex = regexp.MustCompile(`^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$`)
 
+// Verify if the provided string is a valid semver
 func IsValidSemver(version string) bool {
 	return SemverRegex.MatchString(version)
 }
@@ -90,6 +91,7 @@ func GetPkgVersionRange(fullVersion string) string {
 	return ""
 }
 
+// "@types\node\18.0.0\node" -> "@types\node\18.0.0"
 func RemoveLastSubstring(original string, substring string) string {
 	// Check if the substring appears two times in different places
 	if strings.Count(original, substring) >= 2 {
