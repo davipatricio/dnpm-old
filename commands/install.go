@@ -104,16 +104,15 @@ func installSpecificPackages(packages []string, isDep, manual, showEmojis, showD
 
 		latestVersion := ""
 
-		// If there the package has a tag that is the same as the provided version,
+		// If the package has a tag that is the same as the provided version,
 		// we should install that tag instead of the version.
 		if d["dist-tags"] != nil {
 			distTags := d["dist-tags"].(map[string]interface{})
 			latestVersion = distTags["latest"].(string)
-
 			// If no version was provided, use the latest version
 			if pkgVersion == "" {
 				// Get the property latest from d.dist-tags
-				pkgVersion = distTags["latest"].(string)
+				pkgVersion = latestVersion
 			} else if distTags[pkgVersion] != nil {
 				// Get the version of the tag
 				pkgVersion = distTags[pkgVersion].(string)
