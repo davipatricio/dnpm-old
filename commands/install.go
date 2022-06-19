@@ -13,8 +13,6 @@ import (
 	"github.com/davipatricio/colors/colors"
 )
 
-var alreadyDownloaded = make(map[string]bool)
-
 func RunInstallCmd() bool {
 	// Argument parsing
 
