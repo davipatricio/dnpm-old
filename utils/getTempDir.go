@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"os"
 	"os/user"
 	"runtime"
 )
@@ -24,17 +23,5 @@ func GetTempDir() string {
 		path = user.HomeDir + "/.dnpm/temp"
 	}
 
-	createEmptyTempFolder(path)
 	return path
-}
-
-func createEmptyTempFolder(dir string) {
-	// Verify if the store folder exists
-	_, err := os.Stat(dir)
-	if err != nil {
-		err = os.MkdirAll(dir, os.ModePerm)
-		if err != nil {
-			panic(err)
-		}
-	}
 }
