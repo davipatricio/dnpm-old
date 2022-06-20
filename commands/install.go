@@ -203,21 +203,21 @@ func installSpecificPackages(packages []string, isDep, manual, showEmojis, showD
 		// Check if there are dependencies
 		deps, ok := versionData["dependencies"].(map[string]interface{})
 		if ok {
-			loopAndDownloadDeps(deps, showEmojis, showDebug, done)
+			go loopAndDownloadDeps(deps, showEmojis, showDebug, done)
 		} else {
 			done <- true
 		}
 
 		devDeps, ok := versionData["devDependencies"].(map[string]interface{})
 		if downloadDev && ok && !isDep {
-			loopAndDownloadDeps(devDeps, showEmojis, showDebug, done)
+			go loopAndDownloadDeps(devDeps, showEmojis, showDebug, done)
 		} else {
 			done <- true
 		}
 
 		optDeps, ok := versionData["optionalDependencies"].(map[string]interface{})
 		if downloadOptionalDep && ok && !isDep {
-			loopAndDownloadDeps(optDeps, showEmojis, showDebug, done)
+			go loopAndDownloadDeps(optDeps, showEmojis, showDebug, done)
 		} else {
 			done <- true
 		}
@@ -237,15 +237,13 @@ func installSpecificPackages(packages []string, isDep, manual, showEmojis, showD
 
 func loopAndDownloadDeps(deps map[string]interface{}, showEmojis, showDebug bool, ch chan bool) {
 	// Loop through each dependencies
-	go func() {
-		for depName, depVer := range deps {
-			ch2 := make(chan bool, 1)
-			cleanDepVer := utils.RemovePkgVersionRange(depVer.(string))
-			go downloadDeps(depName, cleanDepVer, showEmojis, showDebug, ch2)
-			<-ch2
-		}
-		ch <- true
-	}()
+	for depName, depVer := range deps {
+		ch2 := make(chan bool, 1)
+		cleanDepVer := utils.RemovePkgVersionRange(depVer.(string))
+		go downloadDeps(depName, cleanDepVer, showEmojis, showDebug, ch2)
+		<-ch2
+	}
+	ch <- true
 }
 
 func downloadDeps(depName, depVer string, showEmojis, showDebug bool, ch chan bool) {
