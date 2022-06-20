@@ -58,7 +58,7 @@ func RunInstallCmd() bool {
 		os.Mkdir("node_modules", 0755)
 		// Notify the user that we are installing the requested packages
 		messages.InstallingPkgsInstallCmd(*showEmojis, packagesArgs)
-		installSpecificPackages(packagesArgs, false, true, *showEmojis, *showDebug, *downloadDev, *downloadOptionalDep)
+		installSpecificPackages(packagesArgs, *showEmojis, *showDebug, *downloadDev, *downloadOptionalDep)
 		return false
 	}
 
@@ -69,7 +69,7 @@ func RunInstallCmd() bool {
 }
 
 // If this function is called, means that we found a package.json and no packages/arguments were provided
-func installPackagesPresentOnPackageJSON(path string, isDep, manual, showEmojis, showDebug, downloadDev, downloadOptionalDep bool) {
+func installPackagesPresentOnPackageJSON(path string, showEmojis, showDebug, downloadDev, downloadOptionalDep bool) {
 	// Read the package.json file
 	jsonFile, err := ioutil.ReadFile(path)
 	if err != nil {
@@ -96,7 +96,7 @@ func installPackagesPresentOnPackageJSON(path string, isDep, manual, showEmojis,
 
 		// Download the package
 		installDebug("Downloading package "+pkgName+" ("+pkgVersion+")", false)
-		installSpecificPackages([]string{pkgName + "@" + pkgVersion}, true, true, false, false, false, false)
+		installSpecificPackages([]string{pkgName + "@" + pkgVersion}, false, true, showEmojis, showDebug, downloadDev, downloadOptionalDep)
 	}
 }
 
