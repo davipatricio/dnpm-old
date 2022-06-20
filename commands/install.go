@@ -36,7 +36,7 @@ func RunInstallCmd() bool {
 		if found {
 			messages.FoundPkgInstallCmd(*showEmojis)
 			os.Mkdir("node_modules", 0755)
-			installPackagesPresentOnPackageJSON(path, false, true, *showEmojis, *showDebug, *downloadDev, *downloadOptionalDep)
+			installPackagesPresentOnPackageJSON(path, *showEmojis, *showDebug, *downloadDev, *downloadOptionalDep)
 			return false
 		}
 		// Tell the user that we couldn't find a package.json and recommend the use of "dnpm init"
@@ -58,7 +58,7 @@ func RunInstallCmd() bool {
 		os.Mkdir("node_modules", 0755)
 		// Notify the user that we are installing the requested packages
 		messages.InstallingPkgsInstallCmd(*showEmojis, packagesArgs)
-		installSpecificPackages(packagesArgs, *showEmojis, *showDebug, *downloadDev, *downloadOptionalDep)
+		installSpecificPackages(packagesArgs, false, true, *showEmojis, *showDebug, *downloadDev, *downloadOptionalDep)
 		return false
 	}
 
