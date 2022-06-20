@@ -3,7 +3,9 @@ package commands
 import (
 	"dnpm/messages"
 	"dnpm/rest"
+	"dnpm/structs"
 	"dnpm/utils"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -34,13 +36,12 @@ func RunInstallCmd() bool {
 		if found {
 			messages.FoundPkgInstallCmd(*showEmojis)
 			os.Mkdir("node_modules", 0755)
-			installPackagesPresentOnPackageJSON(path)
-			return false
-		} else {
-			// Tell the user that we couldn't find a package.json and recommend the use of "dnpm init"
-			messages.NoPkgJSONFoundInstallCmd(*showEmojis)
+			installPackagesPresentOnPackageJSON(path, false, true, *showEmojis, *showDebug, *downloadDev, *downloadOptionalDep)
 			return false
 		}
+		// Tell the user that we couldn't find a package.json and recommend the use of "dnpm init"
+		messages.NoPkgJSONFoundInstallCmd(*showEmojis)
+		return false
 	}
 
 	// Check if we found a package.json and there are packages/arguments
@@ -57,12 +58,7 @@ func RunInstallCmd() bool {
 		os.Mkdir("node_modules", 0755)
 		// Notify the user that we are installing the requested packages
 		messages.InstallingPkgsInstallCmd(*showEmojis, packagesArgs)
-		ch := make(chan bool)
-		go func() {
-			installSpecificPackages(packagesArgs, false, true, *showEmojis, *showDebug, *downloadDev, *downloadOptionalDep)
-			ch <- true
-		}()
-		<-ch
+		installSpecificPackages(packagesArgs, false, true, *showEmojis, *showDebug, *downloadDev, *downloadOptionalDep)
 		return false
 	}
 
@@ -72,9 +68,36 @@ func RunInstallCmd() bool {
 	return false
 }
 
-// TODO: install all packages from package.json
-func installPackagesPresentOnPackageJSON(path string) {
-	// If this function is called, means that we found a package.json and no packages/arguments were provided
+// If this function is called, means that we found a package.json and no packages/arguments were provided
+func installPackagesPresentOnPackageJSON(path string, isDep, manual, showEmojis, showDebug, downloadDev, downloadOptionalDep bool) {
+	// Read the package.json file
+	jsonFile, err := ioutil.ReadFile(path)
+	if err != nil {
+		panic(err)
+	}
+
+	// Parse the JSON
+	var pkgJSON structs.PackageJSONFormat
+	json.Unmarshal(jsonFile, &pkgJSON)
+
+	fmt.Println(pkgJSON)
+
+	createEmptyStoreFolder()
+	createEmptyTempFolder()
+
+	// Get the folder we store cached packages
+	for pkgName, pkgVersion := range pkgJSON.Dependencies {
+		pkgVersion = utils.RemovePkgVersionRange(pkgVersion)
+
+		setAlreadyInstalling(pkgName, pkgVersion)
+		// If the folder doesn't exist, we should create it
+		createEmptyFolderForPkg(pkgName, pkgVersion)
+		createTempFolderForPkg(pkgName)
+
+		// Download the package
+		installDebug("Downloading package "+pkgName+" ("+pkgVersion+")", false)
+		installSpecificPackages([]string{pkgName + "@" + pkgVersion}, true, true, false, false, false, false)
+	}
 }
 
 func installSpecificPackages(packages []string, isDep, manual, showEmojis, showDebug, downloadDev, downloadOptionalDep bool) {
@@ -93,11 +116,12 @@ func installSpecificPackages(packages []string, isDep, manual, showEmojis, showD
 		// Empty string if the package doesn't have an org
 		pkgOrgName := utils.GetOrgName(pkgName)
 		// Get the version from the provided string e.g. "typescript@nightly" -> "nightly"
+		// e.g. "typescript" -> ""
 		pkgVersion := utils.GetPkgVersionOrTag(rawPkgString)
 		// Make a request to the Yarn registry requesting the package info
-		d, _ := rest.GetPkg(pkgName)
+		d, err := rest.GetPkg(pkgName)
 
-		if d["error"] != nil {
+		if d["error"] != nil || err != nil {
 			messages.PkgNotFoundInstallCmd(showEmojis, pkgName)
 			continue
 		}
@@ -123,74 +147,84 @@ func installSpecificPackages(packages []string, isDep, manual, showEmojis, showD
 			if d["versions"].(map[string]interface{})[pkgVersion] == nil && isDep {
 				pkgVersion = latestVersion
 				if !isAlreadyInstalling(pkgName, pkgVersion) {
-					installDebug(" !!! Depedency " + pkgName + " does not has version " + pkgVersion + ". Using the latest version!", showDebug)
+					installDebug(" !!! Depedency "+pkgName+" does not has version "+pkgVersion+". Using the latest version!", showDebug)
 				}
 			}
 		}
 
-		// If we didn't queued the package yet, we should queue it
-		if !isAlreadyInstalling(pkgName, pkgVersion) {
-			// If we have the list of versions, we should check if the provided version is valid
-			if d["versions"].(map[string]interface{})[pkgVersion] != nil {
-				// Verify if the package is already cached
-				depCached := isPkgAlreadyCached(pkgName, pkgVersion)
-				installToNodeModules(pkgOrgName, pkgName, utils.GetStoreDir()+"/"+pkgName+"/"+pkgVersion+"/package")
-
-				if depCached {
-					installDebug("Package "+pkgName+" ("+pkgVersion+") is already cached", showDebug)
-				} else {
-					createEmptyStoreFolder()
-					createEmptyTempFolder()
-
-					setAlreadyInstalling(pkgName, pkgVersion)
-
-					// If the folder doesn't exist, we should create it
-					createEmptyFolderForPkg(pkgName, pkgVersion)
-					createTempFolderForPkg(pkgName)
-
-					versionData := d["versions"].(map[string]interface{})[pkgVersion].(map[string]interface{})
-					downloadUrl := versionData["dist"].(map[string]interface{})["tarball"].(string)
-					// "@types\node\18.0.0\node" -> "@types\node\18.0.0"
-					pathWithoutDuplicatedName := utils.RemoveLastSubstring(utils.GetStoreDir()+"/"+pkgName+"/"+pkgVersion, "/"+pkgWithoutOrgName)
-					pathWithoutDuplicatedName = utils.RemoveLastSubstring(pathWithoutDuplicatedName, "\\"+pkgWithoutOrgName)
-
-					ch := make(chan bool)
-					go func(c chan bool) {
-						installDebug("Downloading package "+pkgName+" ("+pkgVersion+")", showDebug)
-						// Download the tgz to the temp folder
-						rest.DownloadPkgTgz(downloadUrl, utils.GetTempDir()+"/"+pkgName+"/"+pkgVersion+".tgz")
-						installDebug("Extracting package "+pkgName+" ("+pkgVersion+")", showDebug)
-						// Extract the tgz to the store folder
-						utils.DecompressTgz(utils.GetTempDir()+"/"+pkgName+"/"+pkgVersion+".tgz", pathWithoutDuplicatedName)
-						setAlreadyCached(pkgName, pkgVersion)
-						removeAlreadyInstalling(pkgName, pkgVersion)
-
-						// Remove the temp tgz
-						go os.Remove(utils.GetTempDir() + "/" + pkgName + "/" + pkgVersion + ".tgz")
-						// Install the package to the node_modules folder
-						installDebug("Installing package "+pkgName+" ("+pkgVersion+")", showDebug)
-						c <- true
-					}(ch)
-					<-ch
-
-					// Check if there are dependencies
-					deps, ok := versionData["dependencies"].(map[string]interface{})
-					if ok {
-						loopAndDownloadDeps(deps, showEmojis, showDebug)
-					}
-
-					devDeps, ok := versionData["devDependencies"].(map[string]interface{})
-					if downloadDev && ok && !isDep {
-						loopAndDownloadDeps(devDeps, showEmojis, showDebug)
-					}
-
-					optDeps, ok := versionData["optionalDependencies"].(map[string]interface{})
-					if downloadOptionalDep && ok && !isDep {
-						loopAndDownloadDeps(optDeps, showEmojis, showDebug)
-					}
-				}
-			}
+		if isAlreadyInstalling(pkgName, pkgVersion) || d["versions"].(map[string]interface{})[pkgVersion] == nil {
+			continue
 		}
+
+		// Verify if the package is already cached
+		depCached := isPkgAlreadyCached(pkgName, pkgVersion)
+		installToNodeModules(pkgOrgName, pkgName, utils.GetStoreDir()+"/"+pkgName+"/"+pkgVersion+"/package")
+		if depCached {
+			installDebug("Package "+pkgName+" ("+pkgVersion+") is already cached", showDebug)
+			continue
+		}
+
+		createEmptyStoreFolder()
+		createEmptyTempFolder()
+
+		setAlreadyInstalling(pkgName, pkgVersion)
+
+		// If the folder doesn't exist, we should create it
+		createEmptyFolderForPkg(pkgName, pkgVersion)
+		createTempFolderForPkg(pkgName)
+
+		versionData := d["versions"].(map[string]interface{})[pkgVersion].(map[string]interface{})
+		downloadUrl := versionData["dist"].(map[string]interface{})["tarball"].(string)
+		// "@types\node\18.0.0\node" -> "@types\node\18.0.0"
+		pathWithoutDuplicatedName := utils.RemoveLastSubstring(utils.GetStoreDir()+"/"+pkgName+"/"+pkgVersion, "/"+pkgWithoutOrgName)
+		pathWithoutDuplicatedName = utils.RemoveLastSubstring(pathWithoutDuplicatedName, "\\"+pkgWithoutOrgName)
+
+		ch := make(chan bool)
+		go func() {
+			installDebug("Downloading package "+pkgName+" ("+pkgVersion+")", showDebug)
+			// Download the tgz to the temp folder
+			rest.DownloadPkgTgz(downloadUrl, utils.GetTempDir()+"/"+pkgName+"/"+pkgVersion+".tgz")
+			installDebug("Extracting package "+pkgName+" ("+pkgVersion+")", showDebug)
+			// Extract the tgz to the store folder
+			utils.DecompressTgz(utils.GetTempDir()+"/"+pkgName+"/"+pkgVersion+".tgz", pathWithoutDuplicatedName)
+			go setAlreadyCached(pkgName, pkgVersion)
+			go removeAlreadyInstalling(pkgName, pkgVersion)
+
+			// Remove the temp tgz
+			go os.Remove(utils.GetTempDir() + "/" + pkgName + "/" + pkgVersion + ".tgz")
+			// Install the package to the node_modules folder
+			installDebug("Installing package "+pkgName+" ("+pkgVersion+")", showDebug)
+			ch <- true
+		}()
+		<-ch
+
+		done := make(chan bool, 3)
+
+		// Check if there are dependencies
+		deps, ok := versionData["dependencies"].(map[string]interface{})
+		if ok {
+			loopAndDownloadDeps(deps, showEmojis, showDebug, done)
+		} else {
+			done <- true
+		}
+
+		devDeps, ok := versionData["devDependencies"].(map[string]interface{})
+		if downloadDev && ok && !isDep {
+			loopAndDownloadDeps(devDeps, showEmojis, showDebug, done)
+		} else {
+			done <- true
+		}
+
+		optDeps, ok := versionData["optionalDependencies"].(map[string]interface{})
+		if downloadOptionalDep && ok && !isDep {
+			loopAndDownloadDeps(optDeps, showEmojis, showDebug, done)
+		} else {
+			done <- true
+		}
+
+		<-done
+		<-done
+		<-done
 	}
 
 	if manual {
@@ -201,19 +235,17 @@ func installSpecificPackages(packages []string, isDep, manual, showEmojis, showD
 	}
 }
 
-func loopAndDownloadDeps(deps map[string]interface{}, showEmojis, showDebug bool) {
+func loopAndDownloadDeps(deps map[string]interface{}, showEmojis, showDebug bool, ch chan bool) {
 	// Loop through each dependencies
-	ch := make(chan bool)
-	go func(c chan bool) {
+	go func() {
 		for depName, depVer := range deps {
-			ch2 := make(chan bool)
+			ch2 := make(chan bool, 1)
 			cleanDepVer := utils.RemovePkgVersionRange(depVer.(string))
 			go downloadDeps(depName, cleanDepVer, showEmojis, showDebug, ch2)
 			<-ch2
 		}
-		c <- true
-	}(ch)
-	<-ch
+		ch <- true
+	}()
 }
 
 func downloadDeps(depName, depVer string, showEmojis, showDebug bool, ch chan bool) {
