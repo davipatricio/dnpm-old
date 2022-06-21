@@ -16,6 +16,8 @@ $ cd dnpm
 $ go build dnpm.go
 ```
 
+If you wish a smaller binary size, compile the program using `go build -ldflags="-w -s" -gcflags=all="-l -B" dnpm.go`
+
 ## 💻 Install from npm
 It is recommended to install dnpm through the [Node Package Manager](http://npmjs.org/), which comes bundled with [Node.js](https://nodejs.org) when you install it on your system.
 
