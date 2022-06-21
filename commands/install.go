@@ -12,7 +12,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/davipatricio/colors/colors"
+	"github.com/gookit/color"
 )
 
 func RunInstallCmd() bool {
@@ -409,6 +409,6 @@ func installToNodeModules(org, pkg, dir string) {
 
 func installDebug(info string, showDebug bool) {
 	if showDebug {
-		fmt.Println(colors.Gray(info))
+		color.Gray.Println(info)
 	}
 }

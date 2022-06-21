@@ -2,9 +2,8 @@ package messages
 
 import (
 	"dnpm/utils"
-	"fmt"
 
-	"github.com/davipatricio/colors/colors"
+	"github.com/gookit/color"
 )
 
 func VersionCmd(showEmojis bool) {
@@ -16,9 +15,9 @@ func VersionCmd(showEmojis bool) {
 }
 
 func versionCmdRaw() {
-	fmt.Println(colors.Green("Version: ") + utils.VERSION)
+	color.Green.Println("Version: " + utils.VERSION)
 }
 
 func versionCmdEmojis() {
-	fmt.Println(colors.Green("📦 Version: ") + utils.VERSION)
+	color.Green.Println("📦 Version: " + utils.VERSION)
 }

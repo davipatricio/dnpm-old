@@ -32,7 +32,7 @@ func RunInitCmd() bool {
 	if !found {
 		// Notify the user that we are creating the package.json
 		messages.InitCmd(*showEmojis)
-		utils.CreateEmptyPackageJSON()
+		utils.CreateEmptyPackageJSON(*showEmojis)
 		// Notify the user that the operation was successful
 		messages.InitDoneCmd(*showEmojis)
 		return false

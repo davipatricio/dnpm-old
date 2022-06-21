@@ -4,13 +4,12 @@ import (
 	"bytes"
 	"dnpm/structs"
 	"encoding/json"
-	"fmt"
 	"os"
 
-	"github.com/davipatricio/colors/colors"
+	"github.com/gookit/color"
 )
 
-func CreateEmptyPackageJSON() error {
+func CreateEmptyPackageJSON(showEmojis bool) error {
 	// Create the package.json file
 	packageJSONFile, err := os.Create("./package.json")
 	if err != nil {
@@ -43,7 +42,7 @@ func CreateEmptyPackageJSON() error {
 	// Write the package.json file
 	_, err = packageJSONFile.Write(buf.Bytes())
 	if err != nil {
-		CouldNotCreateEmptyPkgJson()
+		CouldNotCreateEmptyPkgJson(showEmojis)
 		return err
 	}
 
@@ -55,8 +54,9 @@ func CreateEmptyPackageJSON() error {
 	return err
 }
 
-func CouldNotCreateEmptyPkgJson() {
-	if ShowEmojis() {
+// Used in utils/createEmptyPackageJSON.go
+func CouldNotCreateEmptyPkgJson(showEmojis bool) {
+	if !showEmojis {
 		couldNotWriteEmptyPkgJsonRaw()
 	} else {
 		couldNotWriteEmptyPkgJsonEmojis()
@@ -64,9 +64,9 @@ func CouldNotCreateEmptyPkgJson() {
 }
 
 func couldNotWriteEmptyPkgJsonRaw() {
-	fmt.Println(colors.Red("Could not write package.json file."))
+	color.Red.Println("Could not write package.json file.")
 }
 
 func couldNotWriteEmptyPkgJsonEmojis() {
-	fmt.Println("❌ ", colors.Red("Could not write package.json file."))
+	color.Red.Println("❌ Could not write package.json file.")
 }
