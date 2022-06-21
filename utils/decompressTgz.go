@@ -9,7 +9,7 @@ import (
 )
 
 // Inside the tgz archive, there is another a tar file. Decompress both into the selected directory.
-func DecompressTgz(tgzPath string, destPath string) error {
+func DecompressTgz(tgzPath, destPath string) error {
 	// Open the tgz file
 	tarGzFile, err := os.Open(tgzPath)
 	if err != nil {

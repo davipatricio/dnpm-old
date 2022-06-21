@@ -198,8 +198,8 @@ func installSpecificPackages(packages []string, isDep, manual, showEmojis, showD
 			} else {
 				installDebug("Package "+pkgName+" ("+pkgVersion+") is already cached. Skipping download.", showDebug)
 			}
-			installToNodeModules(pkgOrgName, pkgName, utils.GetStoreDir()+"/"+pkgName+"/"+pkgVersion+"/package")
 			ch <- true
+			installToNodeModules(pkgOrgName, pkgName, utils.GetStoreDir()+"/"+pkgName+"/"+pkgVersion+"/package")
 		}()
 		<-ch
 
