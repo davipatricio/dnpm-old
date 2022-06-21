@@ -158,10 +158,10 @@ func installSpecificPackages(packages []string, isDep, manual, showEmojis, showD
 
 		// Verify if the package is already cached
 		depCached := isPkgAlreadyCached(pkgName, pkgVersion)
-		installToNodeModules(pkgOrgName, pkgName, utils.GetStoreDir()+"/"+pkgName+"/"+pkgVersion+"/package")
-		if depCached {
-			installDebug("Package "+pkgName+" ("+pkgVersion+") is already cached", showDebug)
-			continue
+		if !isDep {
+			addDepsToPackageJSON(pkgName, pkgVersion, "dependencies")
+		} else {
+			addDepsToPackageJSON(pkgName, pkgVersion, "devDependencies")
 		}
 
 		createEmptyStoreFolder()
@@ -181,19 +181,24 @@ func installSpecificPackages(packages []string, isDep, manual, showEmojis, showD
 
 		ch := make(chan bool)
 		go func() {
-			installDebug("Downloading package "+pkgName+" ("+pkgVersion+")", showDebug)
-			// Download the tgz to the temp folder
-			rest.DownloadPkgTgz(downloadUrl, utils.GetTempDir()+"/"+pkgName+"/"+pkgVersion+".tgz")
-			installDebug("Extracting package "+pkgName+" ("+pkgVersion+")", showDebug)
-			// Extract the tgz to the store folder
-			utils.DecompressTgz(utils.GetTempDir()+"/"+pkgName+"/"+pkgVersion+".tgz", pathWithoutDuplicatedName)
-			go setAlreadyCached(pkgName, pkgVersion)
-			go removeAlreadyInstalling(pkgName, pkgVersion)
+			if !depCached {
+				installDebug("Downloading package "+pkgName+" ("+pkgVersion+")", showDebug)
+				// Download the tgz to the temp folder
+				rest.DownloadPkgTgz(downloadUrl, utils.GetTempDir()+"/"+pkgName+"/"+pkgVersion+".tgz")
+				installDebug("Extracting package "+pkgName+" ("+pkgVersion+")", showDebug)
+				// Extract the tgz to the store folder
+				utils.DecompressTgz(utils.GetTempDir()+"/"+pkgName+"/"+pkgVersion+".tgz", pathWithoutDuplicatedName)
+				go setAlreadyCached(pkgName, pkgVersion)
+				go removeAlreadyInstalling(pkgName, pkgVersion)
 
-			// Remove the temp tgz
-			go os.Remove(utils.GetTempDir() + "/" + pkgName + "/" + pkgVersion + ".tgz")
-			// Install the package to the node_modules folder
-			installDebug("Installing package "+pkgName+" ("+pkgVersion+")", showDebug)
+				// Remove the temp tgz
+				go os.Remove(utils.GetTempDir() + "/" + pkgName + "/" + pkgVersion + ".tgz")
+				// Install the package to the node_modules folder
+				installDebug("Installing package "+pkgName+" ("+pkgVersion+")", showDebug)
+			} else {
+				installDebug("Package "+pkgName+" ("+pkgVersion+") is already cached. Skipping download.", showDebug)
+			}
+			installToNodeModules(pkgOrgName, pkgName, utils.GetStoreDir()+"/"+pkgName+"/"+pkgVersion+"/package")
 			ch <- true
 		}()
 		<-ch
@@ -232,6 +237,54 @@ func installSpecificPackages(packages []string, isDep, manual, showEmojis, showD
 		// We should check this so we don't spam the output
 		// Saying which packages were downloaded
 		messages.DoneInstallCmd(showEmojis, endTime-startTime)
+	}
+}
+
+func addDepsToPackageJSON(pkgName, pkgVersion, depType string) {
+	dir, _, err := utils.GetNearestPackageJSON()
+	if err != nil {
+		return
+	}
+
+	// Read the package.json file
+	packageJSON, err := ioutil.ReadFile(dir)
+	if err != nil {
+		return
+	}
+
+	// Parse the package.json file
+	var pkgJSON structs.PackageJSONFormat
+	err = json.Unmarshal(packageJSON, &pkgJSON)
+	if err != nil {
+		return
+	}
+
+	if pkgJSON.Dependencies == nil {
+		pkgJSON.Dependencies = make(map[string]string)
+	}
+
+	if pkgJSON.DevDependencies == nil {
+		pkgJSON.DevDependencies = make(map[string]string)
+	}
+
+	// Add the dependency to the package.json file
+	if depType == "dependencies" {
+		pkgJSON.Dependencies[pkgName] = pkgVersion
+	}
+	if depType == "devDependencies" {
+		pkgJSON.DevDependencies[pkgName] = pkgVersion
+	}
+
+	// Convert the package.json file to a string
+	packageJSON, err = json.Marshal(pkgJSON)
+	if err != nil {
+		return
+	}
+
+	// Write the package.json file
+	err = ioutil.WriteFile(dir, packageJSON, 0644)
+	if err != nil {
+		return
 	}
 }
 
