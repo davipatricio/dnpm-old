@@ -17,19 +17,19 @@ jobs:
         go-version: 1.18
 
     - name: Build for Windows x64
-      run: GOOS=windows GOARCH=amd64 go build -ldflags="-w -s" -gcflags=all="-l -B" -o 'bin/dnpm-win_x64.exe' dnpm.go
+      run: GOOS=windows GOARCH=amd64 go build -ldflags="-w -s" -gcflags=all="-l -B" -o bin/dnpm-win_x64.exe dnpm.go
 
     - name: Build for Windows x86
-      run: GOOS=windows GOARCH=amd64 go build -ldflags="-w -s" -gcflags=all="-l -B" -o 'bin/dnpm-win_x86.exe' dnpm.go
+      run: GOOS=windows GOARCH=amd64 go build -ldflags="-w -s" -gcflags=all="-l -B" -o bin/dnpm-win_x86.exe dnpm.go
 
     - name: Build for Linux x64
-      run: GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -gcflags=all="-l -B" -o 'bin/dnpm-linux_x64' dnpm.go
+      run: GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -gcflags=all="-l -B" -o bin/dnpm-linux_x64 dnpm.go
 
     - name: Build for MacOS x64
-      run: GOOS=darwin GOARCH=amd64 go build -ldflags="-w -s" -gcflags=all="-l -B" -o 'bin/dnpm-darwin_x64' dnpm.go
+      run: GOOS=darwin GOARCH=amd64 go build -ldflags="-w -s" -gcflags=all="-l -B" -o bin/dnpm-darwin_x64 dnpm.go
 
     - name: Build for MacOS arm64
-      run: GOOS=darwin GOARCH=amd64 go build -ldflags="-w -s" -gcflags=all="-l -B" -o 'bin/dnpm-darwin_arm64' dnpm.go
+      run: GOOS=darwin GOARCH=amd64 go build -ldflags="-w -s" -gcflags=all="-l -B" -o bin/dnpm-darwin_arm64 dnpm.go
 
     - name: Upload compiled dnpm for Windows x86
       uses: actions/upload-artifact@v3.1.0
