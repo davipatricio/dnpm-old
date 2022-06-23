@@ -103,7 +103,7 @@ func createTreeBranches(branches []Branch, spaces []bool) string {
 
 		if len(branch.Branches()) > 0 {
 			spacesSlice := spaces
-			spacesSlice = append(spaces, end)
+			spacesSlice = append(spacesSlice, end)
 			output += createTreeBranches(branch.Branches(), spacesSlice)
 		}
 	}
