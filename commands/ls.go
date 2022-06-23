@@ -60,7 +60,7 @@ func getPackagesEmojis(showAll bool) string {
 			branch := tree.Add("📦 " + colors.Green(pac+"@"+version))
 
 			if showAll {
-				getPackagesOfPackageAndAddToBranch(pac, branch, []string{})
+				getPackagesOfPackageAndAddToBranch(true, pac, branch, []string{})
 			}
 		}
 	}
@@ -100,14 +100,18 @@ func getPackagesRaw(showAll bool) string {
 				tree.Add(colors.Red(pac + "@" + version))
 			}
 		} else {
-			tree.Add(colors.Green(pac + "@" + version))
+			branch := tree.Add(colors.Green(pac + "@" + version))
+
+			if showAll {
+				getPackagesOfPackageAndAddToBranch(false, pac, branch, []string{})
+			}
 		}
 	}
 
 	return tree.Text()
 }
 
-func getPackagesOfPackageAndAddToBranch(pac string, branch utils.Branch, already []string) {
+func getPackagesOfPackageAndAddToBranch(showEmojis bool, pac string, branch utils.Branch, already []string) {
 	pkgJSON, found := utils.GetPackageJSONOfPackage(pac)
 	dependenciesPack := map[string]string{}
 
@@ -123,7 +127,11 @@ func getPackagesOfPackageAndAddToBranch(pac string, branch utils.Branch, already
 			}
 
 			version = fixPackageVersion(version)
-			branch.Add("📦 " + colors.Green(pkgName+"@"+version))
+			if showEmojis {
+				branch.Add("📦 " + colors.Green(pkgName + "@" + version))
+			} else {
+				branch.Add(colors.Green(pkgName + "@" + version))
+			}
 		}
 	}
 }
