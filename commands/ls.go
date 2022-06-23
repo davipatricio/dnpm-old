@@ -141,7 +141,7 @@ func isEmpty() bool {
 }
 
 func fixPackageVersion(version string) string {
-	return strings.Split(strings.Replace(version, "^", "", -1), "||")[0]
+	return strings.Split(strings.ReplaceAll(version, "^", ""), "||")[0]
 }
 
 func verifyPackageExists(packageName string) bool {
