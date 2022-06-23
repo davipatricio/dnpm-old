@@ -28,10 +28,10 @@ func GetPackageJSONOfPackage(pkgName string) (structs.PackageJSONFormat, bool) {
 	var pkgJSON structs.PackageJSONFormat
 	if _, err := os.Stat(pkgDir); os.IsNotExist(err) {
 		return pkgJSON, false
-	} else {
-		jsonFile, _ := ioutil.ReadFile(pkgDir + "/package.json")
-		json.Unmarshal(jsonFile, &pkgJSON)
-
-		return pkgJSON, true
 	}
+
+	jsonFile, _ := ioutil.ReadFile(pkgDir + "/package.json")
+	json.Unmarshal(jsonFile, &pkgJSON)
+
+	return pkgJSON, true
 }
