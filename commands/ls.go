@@ -52,7 +52,7 @@ func getPackagesEmojis(showAll bool) string {
 	utils.Assign(pacJSON.PeerDependencies, dependencies)
 
 	for pac, version := range dependencies {
-		version = fixPackageVersion(version)
+		version = utils.RemovePkgVersionRange(version)
 
 		if !verifyPackageExists(pac) {
 			tree.Add("📦 " + colors.Red(pac+"@"+version))
@@ -91,7 +91,7 @@ func getPackagesRaw(showAll bool) string {
 	utils.Assign(pacJSON.PeerDependencies, dependencies)
 
 	for pac, version := range dependencies {
-		version = fixPackageVersion(version)
+		version = utils.RemovePkgVersionRange(version)
 
 		if !verifyPackageExists(pac) {
 			if isOptionalDependency(pac, "default") {
@@ -126,7 +126,7 @@ func getPackagesOfPackageAndAddToBranch(showEmojis bool, pac string, branch util
 				continue
 			}
 
-			version = fixPackageVersion(version)
+			version = utils.RemovePkgVersionRange(version)
 			if showEmojis {
 				branch.Add("📦 " + colors.Green(pkgName + "@" + version))
 			} else {
@@ -138,10 +138,6 @@ func getPackagesOfPackageAndAddToBranch(showEmojis bool, pac string, branch util
 
 func isEmpty() bool {
 	return len(utils.GetPackageJSON().Dependencies) == 0
-}
-
-func fixPackageVersion(version string) string {
-	return strings.Split(strings.ReplaceAll(version, "^", ""), "||")[0]
 }
 
 func verifyPackageExists(packageName string) bool {
