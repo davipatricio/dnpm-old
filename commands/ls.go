@@ -5,7 +5,6 @@ import (
 	"dnpm/utils"
 	"flag"
 	"os"
-	"strings"
 
 	"github.com/davipatricio/colors/colors"
 	"golang.org/x/exp/maps"
