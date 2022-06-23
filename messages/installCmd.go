@@ -3,8 +3,7 @@ package messages
 import (
 	"fmt"
 
-	"github.com/davipatricio/colors/colors"
-	"github.com/davipatricio/colors/styles"
+	"github.com/gookit/color"
 )
 
 func FoundPkgInstallCmd(showEmojis bool) {
@@ -67,49 +66,49 @@ func VersionNotFoundInstallCmd(showEmojis bool) {
 
 // Version not found
 func versionNotFoundRaw() {
-	fmt.Println(colors.Red("Version not found."))
-	fmt.Println(colors.Cyan("Please provide a valid version."))
+	color.Red.Printf("Version not found.")
+	color.Cyan.Printf("Please provide a valid version.")
 }
 
 func versionNotFoundEmojis() {
-	fmt.Println("🤷 " + colors.Red("Version not found."))
-	fmt.Println("ℹ️ " + colors.Cyan("Please provide a valid version."))
+	color.Red.Printf("🤷 Version not found.")
+	color.Cyan.Printf("ℹ️  Please provide a valid version.")
 }
 
 // When an operation is completed
 func doneOperationRaw(ms int64) {
-	fmt.Printf(colors.Green("Done in %vms.\n"), ms)
+	color.Green.Printf("Done in %vms.\n", ms)
 }
 
 func doneOperationEmojis(ms int64) {
-	fmt.Printf("✅ "+colors.Green("Done in %vms.\n"), ms)
+	color.Green.Printf("✅ Done in %vms.\n", ms)
 }
 
 // Package not found on the registry
 func pkgNotFoundRaw(pkg string) {
-	fmt.Println(colors.Red("Package '" + pkg + "' was not found on the registry."))
+	color.Red.Println("Package '" + pkg + "' was not found on the registry.")
 }
 
 func pkgNotFoundEmojis(pkg string) {
-	fmt.Println("🤷 " + colors.Red("Package '"+pkg+"' was not found on the registry."))
+	color.Red.Println("🤷 Package '" + pkg + "' was not found on the registry.")
 }
 
 // No package provided
 func noPkgProvidedRaw() {
-	fmt.Println(colors.Red("No package provided."))
-	fmt.Println(colors.Cyan("Please provide a package to install."))
+	color.Red.Println("No package provided.")
+	color.Cyan.Println("Please provide a package to install.")
 }
 
 func noPkgProvidedEmojis() {
-	fmt.Println("🤷 " + colors.Red("No package provided."))
-	fmt.Println("ℹ️ " + colors.Cyan("Please provide a package to install."))
+	color.Red.Println("🤷 No package provided.")
+	color.Cyan.Println("ℹ️ Please provide a package to install.")
 }
 
 // Installing requested packages
 func installingPkgsRaw(pkgs []string) {
 	str := "Installing packages:"
 	for _, pkg := range pkgs {
-		str += "\n  " + styles.Bold(colors.Green(pkg))+"\n\n"
+		str += "\n  " + color.OpBold.Render(color.Green.Render(pkg)) + "\n\n"
 	}
 	fmt.Println(str)
 }
@@ -117,27 +116,27 @@ func installingPkgsRaw(pkgs []string) {
 func installingPkgsEmojis(pkgs []string) {
 	str := "➕ Installing packages:"
 	for _, pkg := range pkgs {
-		str += "\n📦  " + styles.Bold(colors.Green(pkg))+"\n\n"
+		str += "\n📦  " + color.OpBold.Render(color.Green.Render(pkg)) + "\n\n"
 	}
 	fmt.Println(str)
 }
 
 // No package.json found
 func noPkgJsonFoundRaw() {
-	fmt.Println(colors.Red("No package.json was found."))
-	fmt.Println(colors.Cyan("Please run 'dnpm init' to create a package.json file."))
+	color.Red.Println("No package.json was found.")
+	color.Cyan.Println("Please run 'dnpm init' to create a package.json file.")
 }
 
 func noPkgJsonFoundEmojis() {
-	fmt.Println("🤷 " + colors.Red("No package.json was found."))
-	fmt.Println("ℹ️ " + colors.Cyan("Please run 'dnpm init' to create a package.json file."))
+	color.Red.Println("🤷 No package.json was found.")
+	color.Cyan.Println("ℹ️  Please run 'dnpm init' to create a package.json file.")
 }
 
 // Installing package.json dependencies
 func foundPkgInstallRaw() {
-	fmt.Println(colors.Cyan("Installing packages present on 'package.json'"))
+	color.Cyan.Println("Installing packages present on 'package.json'")
 }
 
 func foundPkgInstallEmojis() {
-	fmt.Println("📦 " + colors.Cyan("Installing packages present on 'package.json'"))
+	color.Cyan.Println("📦 Installing packages present on 'package.json'")
 }

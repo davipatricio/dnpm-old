@@ -3,7 +3,7 @@ package messages
 import (
 	"fmt"
 
-	"github.com/davipatricio/colors/colors"
+	"github.com/gookit/color"
 )
 
 func InitCmd(showEmojis bool) {
@@ -40,36 +40,36 @@ func InitErrReadingCmd(showEmojis bool) {
 
 // Could not read directory
 func couldNotReadDirRaw() {
-	fmt.Println(colors.Red("Could not read directory."))
+	fmt.Println(color.Red.Render("Could not read directory."))
 }
 
 func couldNotReadDirEmojis() {
-	fmt.Println("❌ ", colors.Red("Could not read directory."))
+	fmt.Println("❌ ", color.Red.Render("Could not read directory."))
 }
 
 // Package.json already exists
 func initCmdExistsRaw() {
-	fmt.Println(colors.Red("A package.json file already exists in this directory."))
+	fmt.Println(color.Red.Render("A package.json file already exists in this directory."))
 }
 
 func initCmdExistsEmojis() {
-	fmt.Println("❌ ", colors.Red("A package.json file already exists in this directory."))
+	fmt.Println("❌ ", color.Red.Render("A package.json file already exists in this directory."))
 }
 
 // Created package.json successfully
 func initCmdDoneRaw() {
-	fmt.Println(colors.Green("Created package.json successfully!"))
+	fmt.Println(color.Green.Render("Created package.json successfully!"))
 }
 
 func initCmdDoneEmojis() {
-	fmt.Println("✅ ", colors.Green("Created package.json successfully!"))
+	fmt.Println("✅ ", color.Green.Render("Created package.json successfully!"))
 }
 
 // Creating package.json
 func initCmdCreatingRaw() {
-	fmt.Println(colors.Green("Creating package.json on this directory..."))
+	fmt.Println(color.Green.Render("Creating package.json on this directory..."))
 }
 
 func initCmdCreatingEmojis() {
-	fmt.Println("📝 ", colors.Green("Creating package.json on this directory..."))
+	fmt.Println("📝 ", color.Green.Render("Creating package.json on this directory..."))
 }
