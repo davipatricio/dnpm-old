@@ -102,8 +102,8 @@ func createTreeBranches(branches []Branch, spaces []bool) string {
 		output += createText(branch.Title(), spaces, end)
 
 		if len(branch.Branches()) > 0 {
-			_spaces := append(spaces, end)
-			output += createTreeBranches(branch.Branches(), _spaces)
+			spacesChild := append(spaces, end)
+			output += createTreeBranches(branch.Branches(), spacesChild)
 		}
 	}
 
