@@ -25,6 +25,7 @@ func emptyCmdRaw(notSpecified bool) {
 	fmt.Println(styles.Bold("dnpm install"), "         install all the dependecies in your project")
 	fmt.Println(styles.Bold("dnpm install <pkg>"), "   add the <pkg> dependecy to your project")
 	fmt.Println(styles.Bold("dnpm version"), "         shows the version of dnpm")
+	fmt.Println(styles.Bold("dnpm ls"), "              shows all the versions of packages that are installed")
 }
 
 func emptyCmdEmojis(notSpecified bool) {
@@ -36,4 +37,5 @@ func emptyCmdEmojis(notSpecified bool) {
 	fmt.Println(colors.Green("➕"), styles.Bold("dnpm install"), "         install all the dependecies in your project")
 	fmt.Println(colors.Green("➕"), styles.Bold("dnpm install <pkg>"), "   add the <pkg> dependecy to your project")
 	fmt.Println(colors.Cyan(" ℹ️"), styles.Bold("dnpm version"), "         shows the version of dnpm")
+	fmt.Println(colors.Cyan(" ℹ️"), styles.Bold("dnpm ls"), "              shows all the versions of packages that are installed")
 }
