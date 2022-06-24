@@ -148,8 +148,8 @@ func verifyPackageExists(packageName string) bool {
 func isOptionalDependency(pkgName string, dir string) bool {
 	if dir == "default" {
 		return utils.Contains(maps.Keys(utils.GetPackageJSON().OptionalDependencies), pkgName)
-	} else {
-		pkgJSON, _ := utils.GetPackageJSONOfPackage(dir)
-		return utils.Contains(maps.Keys(pkgJSON.OptionalDependencies), pkgName)
 	}
+
+	pkgJSON, _ := utils.GetPackageJSONOfPackage(dir)
+	return utils.Contains(maps.Keys(pkgJSON.OptionalDependencies), pkgName)
 }
