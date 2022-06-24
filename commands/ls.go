@@ -22,9 +22,9 @@ func RunLsCmd() {
 func getPackages(showEmojis, showAll bool) string {
 	if showEmojis {
 		return getPackagesEmojis(showAll)
-	} else {
-		return getPackagesRaw(showAll)
 	}
+
+	return getPackagesRaw(showAll)
 }
 
 func getPackagesEmojis(showAll bool) string {
