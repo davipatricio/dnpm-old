@@ -19,6 +19,8 @@ func main() {
 		commands.RunInstallCmd()
 	case "init":
 		commands.RunInitCmd()
+	case "ls":
+		commands.RunLsCmd()
 	case "help", "h", "?":
 		messages.EmptyCmd(false)
 	default:
