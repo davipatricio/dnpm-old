@@ -3,10 +3,15 @@ package messages
 import (
 	"fmt"
 
-	"github.com/davipatricio/colors/colors"
-	"github.com/davipatricio/colors/styles"
+	"github.com/gookit/color"
 )
 
 func LsCmd(tree string) {
-	fmt.Println(tree, "\n" + colors.Red("● ") + styles.Bold("Unmet Dependency\n")  + colors.Yellow("● ") + styles.Bold("Unmet Optional Dependency\n") + colors.Green("● ") + styles.Bold("Met Dependency\n"))
+	final := tree
+
+	final += "\n" + color.Red.Render("● ") + color.Bold.Render("Unmet Dependency\n")
+	final += color.Bold.Render("Unmet Optional Dependency\n") + color.Yellow.Render("● ")
+	final += color.Green.Render("● ") + color.Bold.Render("Met Dependency\n")
+
+	fmt.Println(final)
 }

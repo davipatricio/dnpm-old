@@ -6,7 +6,7 @@ import (
 	"flag"
 	"os"
 
-	"github.com/davipatricio/colors/colors"
+	"github.com/gookit/color"
 	"golang.org/x/exp/maps"
 )
 
@@ -37,7 +37,7 @@ func getPackagesEmojis(showAll bool) string {
 	pacJSON := utils.GetPackageJSON()
 
 	if pacJSON.Name != "" {
-		title = pacJSON.Name + colors.Magenta(" ➜  ") + utils.GetExecDir()
+		title = pacJSON.Name + color.Magenta.Render(" ➜  ") + utils.GetExecDir()
 	} else {
 		title = utils.GetExecDir()
 	}
@@ -54,9 +54,9 @@ func getPackagesEmojis(showAll bool) string {
 		version = utils.RemovePkgVersionRange(version)
 
 		if !verifyPackageExists(pac) {
-			tree.Add("📦 " + colors.Red(pac+"@"+version))
+			tree.Add("📦 " + color.Red.Render(pac+"@"+version))
 		} else {
-			branch := tree.Add("📦 " + colors.Green(pac+"@"+version))
+			branch := tree.Add("📦 " + color.Green.Render(pac+"@"+version))
 
 			if showAll {
 				getPackagesOfPackageAndAddToBranch(true, pac, branch, []string{})
@@ -76,7 +76,7 @@ func getPackagesRaw(showAll bool) string {
 	pacJSON := utils.GetPackageJSON()
 
 	if pacJSON.Name != "" {
-		title = pacJSON.Name + colors.Magenta("@ ") + utils.GetExecDir()
+		title = pacJSON.Name + color.Magenta.Render("@ ") + utils.GetExecDir()
 	} else {
 		title = utils.GetExecDir()
 	}
@@ -94,12 +94,12 @@ func getPackagesRaw(showAll bool) string {
 
 		if !verifyPackageExists(pac) {
 			if isOptionalDependency(pac, "default") {
-				tree.Add(colors.Yellow(pac + "@" + version))
+				tree.Add(color.Yellow.Render(pac + "@" + version))
 			} else {
-				tree.Add(colors.Red(pac + "@" + version))
+				tree.Add(color.Red.Render(pac + "@" + version))
 			}
 		} else {
-			branch := tree.Add(colors.Green(pac + "@" + version))
+			branch := tree.Add(color.Green.Render(pac + "@" + version))
 
 			if showAll {
 				getPackagesOfPackageAndAddToBranch(false, pac, branch, []string{})
@@ -127,9 +127,9 @@ func getPackagesOfPackageAndAddToBranch(showEmojis bool, pac string, branch util
 
 			version = utils.RemovePkgVersionRange(version)
 			if showEmojis {
-				branch.Add("📦 " + colors.Green(pkgName + "@" + version))
+				branch.Add("📦 " + color.Green.Render(pkgName + "@" + version))
 			} else {
-				branch.Add(colors.Green(pkgName + "@" + version))
+				branch.Add(color.Green.Render(pkgName + "@" + version))
 			}
 		}
 	}
