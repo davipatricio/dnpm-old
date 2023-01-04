@@ -4,12 +4,15 @@ import (
 	"encoding/json"
 	"io"
 	"os"
+
+	"github.com/davipatricio/dnpm/api"
 )
 
 // Reads a package.json, transforms it into a PackageJSON
-//  pkg, err := ReadPackageJSON('./package.json')
-//  fmt.Println(pkg.Name)
-func ParseLocalPackageJSON(path string) (pkg PackageJSON, err error) {
+//
+//	pkg, err := ReadPackageJSON("./package.json")
+//	fmt.Println(pkg.Name)
+func ParseLocalPackageJSON(path string) (pkg api.PackageJSON, err error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return
@@ -33,7 +36,8 @@ func ParseLocalPackageJSON(path string) (pkg PackageJSON, err error) {
 }
 
 // Tries to find the nearest package.json (up to 20 directories)
-//  path, wasFound := FindNearestPackageJSON('./')
+//
+//	path, wasFound := FindNearestPackageJSON("./")
 func FindNearestPackageJSON(initialPath string) (path string, found bool) {
 	// Get the current directory
 	dir, err := os.Getwd()
@@ -44,7 +48,7 @@ func FindNearestPackageJSON(initialPath string) (path string, found bool) {
 	tries := 0
 
 	for {
-		tries++;
+		tries++
 		if tries >= 20 {
 			return
 		}
@@ -60,3 +64,20 @@ func FindNearestPackageJSON(initialPath string) (path string, found bool) {
 		dir = dir + "/.."
 	}
 }
+
+// Saves a package.json to a file
+func SavePackageJSON(pkg api.PackageJSON, path string) error {
+	file, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+
+	// Write the package.json to the file
+	err = json.NewEncoder(file).Encode(pkg)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+

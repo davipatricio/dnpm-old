@@ -18,8 +18,7 @@ func GetCachedPackageData(packageName string, version string) (data CachedPackag
 
 	defer file.Close()
 
-	decoder := json.NewDecoder(file)
-	err = decoder.Decode(&data)
+	err = json.NewDecoder(file).Decode(&data)
 	if err != nil {
 		return
 	}
@@ -36,8 +35,7 @@ func SetCachedPackageData(packageName string, version string, data CachedPackage
 
 	defer file.Close()
 
-	encoder := json.NewEncoder(file)
-	err = encoder.Encode(data)
+	err = json.NewEncoder(file).Encode(data)
 	if err != nil {
 		return
 	}
