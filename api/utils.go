@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"os"
 )
@@ -59,12 +58,5 @@ func FindNearestPackageJSON(initialPath string) (path string, found bool) {
 
 		// If there is not, go up one directory
 		dir = dir + "/.."
-
-		fmt.Println(dir)
-
-		// Check if we are already at the Linux/MacOS/Windows root
-		// if strings.HasSuffix(dir, ":/") || strings.HasSuffix(dir, ":\\") {
-		// 	return
-		// }
 	}
 }
