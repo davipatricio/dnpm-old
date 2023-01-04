@@ -1,4 +1,4 @@
-package api
+package dependencies
 
 import (
 	"github.com/davipatricio/dnpm/api"
