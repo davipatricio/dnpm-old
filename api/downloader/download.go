@@ -12,6 +12,7 @@ import (
 
 // DownloadPackage downloads a package from a url, saves it to the store and extracts it
 // The first boolean value is true if the package was already downloaded and false if it was downloaded now
+// To skip the integrity check, pass an empty string as the shasum
 func DownloadAndSavePackage(url string, shasum, packageName, version string) (bool, error) {
 	d, err := store.GetCachedPackageData(packageName, version)
 	if err != nil {
@@ -28,8 +29,10 @@ func DownloadAndSavePackage(url string, shasum, packageName, version string) (bo
 
 		store.SetCachedPackageData(packageName, version, store.CachedPackageData{SuccessfullDownload: true, Shasum: shasum})
 
-		if !integrity.CheckIntegrity(data, shasum) {
-			return false, fmt.Errorf("integrity check failed")
+		if shasum != "" {
+			if !integrity.CheckIntegrity(data, shasum) {
+				return false, fmt.Errorf("integrity check failed")
+			}
 		}
 
 		// Write data to the store/temp
