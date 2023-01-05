@@ -1,5 +1,6 @@
 // Store folder structure:
-// dnpm/store/[package name]/[version]/data/files/[package files]
+// dnpm/store/[package name]/[version]/data/package/[package files]
+// dnpm/store/[package name]/[version]/data/temp.tgz
 // dnpm/store/[package name]/[version]/data/data.json
 package store
 
@@ -15,14 +16,12 @@ func DefaultStoreExists() bool {
 }
 
 func CreateDefaultStore() error {
-	err := os.MkdirAll(GetDefaultStorePath(), 0755)
-	if err != nil {
+	if err := os.MkdirAll(GetDefaultStorePath(), 0755); err != nil {
 		return err
 	}
 
 	return nil
 }
-
 
 func GetDefaultStorePath() string {
 	path := ""
@@ -46,10 +45,18 @@ func GetDefaultStorePath() string {
 }
 
 func CreatePackageStore(packageName string, packageVersion string) error {
-	err := os.MkdirAll(GetDefaultStorePath()+packageName+"/"+packageVersion+"/data/files/", 0755)
-	if err != nil {
-		return err
-	}
+	return os.MkdirAll(GetDefaultStorePath()+packageName+"/"+packageVersion+"/data/package/", 0755)
+}
 
-	return nil
+func WriteTempFile(data []byte, packageName string, packageVersion string) (path string, err error) {
+	CreatePackageStore(packageName, packageVersion)
+
+	path = GetDefaultStorePath() + packageName + "/" + packageVersion + "/data/temp.tgz"
+	err = os.WriteFile(path, data, 0755)
+
+	return
+}
+
+func DeleteTempFile(packageName string, packageVersion string) error {
+	return os.Remove(GetDefaultStorePath() + packageName + "/" + packageVersion + "/data/temp.tgz")
 }

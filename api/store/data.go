@@ -27,7 +27,7 @@ func GetCachedPackageData(packageName string, version string) (data CachedPackag
 }
 
 func SetCachedPackageData(packageName string, version string, data CachedPackageData) (err error) {
-	os.MkdirAll(GetDefaultStorePath()+packageName+"/"+version+"/data/files/", 0755)
+	CreatePackageStore(packageName, version)
 	file, err := os.Create(GetDefaultStorePath() + packageName + "/" + version + "/data/data.json")
 	if err != nil {
 		return
