@@ -7,7 +7,7 @@ import (
 
 type CachedPackageData struct {
 	SuccessfullDownload bool   `json:"successfull_download"`
-	Shasum              string `json:"shasum"`
+	SuccessfullExtract  bool   `json:"successfull_extract"`
 }
 
 // GetCachedPackageData returns the cached package data for the given package and version
