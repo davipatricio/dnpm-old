@@ -27,7 +27,7 @@ func DownloadAndSavePackage(url string, shasum, packageName, version string) (bo
 			return false, err
 		}
 
-		store.SetCachedPackageData(packageName, version, store.CachedPackageData{SuccessfullDownload: true, Shasum: shasum})
+		store.SetCachedPackageData(packageName, version, store.CachedPackageData{SuccessfullDownload: true})
 
 		if shasum != "" {
 			if !integrity.CheckIntegrity(data, shasum) {
@@ -46,6 +46,8 @@ func DownloadAndSavePackage(url string, shasum, packageName, version string) (bo
 		if err != nil {
 			return false, err
 		}
+	
+		store.SetCachedPackageData(packageName, version, store.CachedPackageData{SuccessfullDownload: true, SuccessfullExtract: true})
 
 		// Delete the temp file
 		err = store.DeleteTempFile(packageName, version)
