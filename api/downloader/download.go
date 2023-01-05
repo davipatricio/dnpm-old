@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 
 	"github.com/davipatricio/dnpm/api/integrity"
 	"github.com/davipatricio/dnpm/api/store"
@@ -14,11 +15,35 @@ import (
 // The first boolean value is true if the package was already downloaded and false if it was downloaded now
 // To skip the integrity check, pass an empty string as the shasum
 //
-//  wasCached, err := DownloadAndSavePackage("https://registry.npmjs.org/helly/-/helly-1.1.0.tgz", "", "helly", "1.1.0")
+//	wasCached, err := DownloadAndSavePackage("https://registry.npmjs.org/helly/-/helly-1.1.0.tgz", "", "helly", "1.1.0")
 func DownloadAndSavePackage(url string, shasum, packageName, version string) (bool, error) {
 	d, err := store.GetCachedPackageData(packageName, version)
 	if err != nil {
 		store.SetCachedPackageData(packageName, version, store.CachedPackageData{SuccessfullDownload: false})
+	}
+
+	// if we had a successful download, but not a successful extraction, try to extract it again
+	if d.SuccessfullDownload && !d.SuccessfullExtract {
+		basePath := store.GetDefaultStorePath() + packageName + "/" + version + "/data"
+		path := basePath + "/temp.tgz"
+
+		// Delete the package folder incase of incomplete extraction
+		os.RemoveAll(basePath + "/package/")
+
+		// Extract the package
+		err = tgz.LoadTgzAndExtractTo(path, basePath+"/")
+
+		// If we have an error, lets redownload the package
+		if err == nil {
+			store.SetCachedPackageData(packageName, version, store.CachedPackageData{SuccessfullDownload: true, SuccessfullExtract: true})
+
+			// Delete the temp file
+			err = store.DeleteTempFile(packageName, version)
+			return true, err
+		} else {
+			// Set the successfull download to false, so we can redownload the package
+			d.SuccessfullDownload = false
+		}
 	}
 
 	// If we didn't download the package yet, download it
@@ -49,7 +74,7 @@ func DownloadAndSavePackage(url string, shasum, packageName, version string) (bo
 		if err != nil {
 			return false, err
 		}
-	
+
 		store.SetCachedPackageData(packageName, version, store.CachedPackageData{SuccessfullDownload: true, SuccessfullExtract: true})
 
 		// Delete the temp file
