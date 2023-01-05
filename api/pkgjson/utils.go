@@ -36,13 +36,7 @@ func ParseLocalPackageJSON(path string) (pkg api.PackageJSON, err error) {
 // Tries to find the nearest package.json (up to 20 directories)
 //
 //	path, wasFound := FindNearestPackageJSON("./")
-func FindNearestPackageJSON(initialPath string) (path string, found bool) {
-	// Get the current directory
-	dir, err := os.Getwd()
-	if err != nil {
-		return
-	}
-
+func FindNearestPackageJSON(dir string) (path string, found bool) {
 	tries := 0
 
 	for {
