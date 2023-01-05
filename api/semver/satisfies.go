@@ -237,29 +237,6 @@ func versionX(version string, semver string) bool {
 	return true
 }
 
-// Checks if a version is equal to a semver range
-//
-//	satisfies := versionX("1.2.3", "1.2.0")
-func versionXRange(version string, semver string) bool {
-	vs := strings.Split(version, ".")
-	ss := strings.Split(semver, ".")
-
-	for i := 0; i < len(ss); i++ {
-		v, _ := parseInt(vs[i])
-		s, _ := parseInt(ss[i])
-
-		if s == -1 {
-			return true
-		}
-
-		if v != s {
-			return false
-		}
-	}
-
-	return true
-}
-
 // parseInt
 func parseInt(s string) (int, error) {
 	if s == "x" {
