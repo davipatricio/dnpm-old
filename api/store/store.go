@@ -16,11 +16,7 @@ func DefaultStoreExists() bool {
 }
 
 func CreateDefaultStore() error {
-	if err := os.MkdirAll(GetDefaultStorePath(), 0755); err != nil {
-		return err
-	}
-
-	return nil
+	return os.MkdirAll(GetDefaultStorePath(), 0755)
 }
 
 func GetDefaultStorePath() string {
@@ -52,9 +48,7 @@ func WriteTempFile(data []byte, packageName string, packageVersion string) (path
 	CreatePackageStore(packageName, packageVersion)
 
 	path = GetDefaultStorePath() + packageName + "/" + packageVersion + "/data/temp.tgz"
-	err = os.WriteFile(path, data, 0755)
-
-	return
+	return path, os.WriteFile(path, data, 0755)
 }
 
 func DeleteTempFile(packageName string, packageVersion string) error {
