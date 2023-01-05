@@ -44,6 +44,10 @@ func CreatePackageStore(packageName string, packageVersion string) error {
 	return os.MkdirAll(GetDefaultStorePath()+packageName+"/"+packageVersion+"/data/package/", 0755)
 }
 
+func DeletePackageStore(packageName string, packageVersion string) error {
+	return os.RemoveAll(GetDefaultStorePath() + packageName + "/" + packageVersion)
+}
+
 func WriteTempFile(data []byte, packageName string, packageVersion string) (path string, err error) {
 	CreatePackageStore(packageName, packageVersion)
 
