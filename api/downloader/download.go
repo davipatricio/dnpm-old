@@ -11,6 +11,11 @@ import (
 	"github.com/davipatricio/dnpm/api/tgz"
 )
 
+const (
+	ErrorPackageOrVersionNotFound = "package or version not found"
+	ErrorServerError              = "server error"
+)
+
 // DownloadPackage downloads a package from a url, saves it to the store and extracts it
 // The first boolean value is true if the package was already downloaded and false if it was downloaded now
 // To skip the integrity check, pass an empty string as the shasum
@@ -107,5 +112,20 @@ func downloadPackage(url string) (data []byte, err error) {
 		return
 	}
 
-	return data, resp.Body.Close()
+	err = resp.Body.Close()
+
+	// Check the response status code
+	switch resp.StatusCode {
+	case 200:
+		return data, err
+	case 404:
+		return data, fmt.Errorf(ErrorPackageOrVersionNotFound)
+	case 500:
+		return data, fmt.Errorf(ErrorServerError)
+	default:
+		if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+			return data, err
+		}
+		return data, fmt.Errorf("unknown error")
+	}
 }
