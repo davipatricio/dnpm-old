@@ -50,32 +50,6 @@ func LoadTgzAndExtractTo(compressedFile string, destination string) error {
 	return err
 }
 
-// func readFirstTgz(hdr *tar.Header, tr io.Reader, destination string) error {
-// 	// Create a new tar reader on top of the file reader
-// 	// for the inner tar file
-// 	innerTr := tar.NewReader(tr)
-
-// 	// Iterate through the files in the inner tar archive
-// 	for {
-// 		innerHdr, err := innerTr.Next()
-// 		if err == io.EOF {
-// 			// End of inner tar archive
-// 			break
-// 		}
-// 		if err != nil {
-// 			return err
-// 		}
-
-// 		// Extract the file to the destination directory
-// 		err = extractFile(innerHdr, innerTr, destination)
-// 		if err != nil {
-// 			return err
-// 		}
-// 	}
-
-// 	return nil
-// }
-
 func extractFile(hdr *tar.Header, r io.Reader, destination string) error {
 	// create paths if they don't exist abc/xyz/123.js -> abc/xyz
 	os.MkdirAll(filepath.Join(destination, filepath.Dir(hdr.Name)), 0755)
