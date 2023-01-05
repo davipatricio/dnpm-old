@@ -68,11 +68,11 @@ func downloadPackage(url string) (data []byte, err error) {
 		return
 	}
 
-	// Close the response body
-	defer resp.Body.Close()
-
 	// Read the response body
 	data, err = io.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
 
-	return
+	return data, resp.Body.Close()
 }

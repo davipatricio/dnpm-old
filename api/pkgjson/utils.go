@@ -18,8 +18,6 @@ func ParseLocalPackageJSON(path string) (pkg api.PackageJSON, err error) {
 		return
 	}
 
-	defer file.Close()
-
 	// Read the file and store its data
 	data, err := io.ReadAll(file)
 	if err != nil {
@@ -32,7 +30,7 @@ func ParseLocalPackageJSON(path string) (pkg api.PackageJSON, err error) {
 		return
 	}
 
-	return
+	return pkg, file.Close()
 }
 
 // Tries to find the nearest package.json (up to 20 directories)

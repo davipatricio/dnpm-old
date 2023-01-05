@@ -14,14 +14,12 @@ func LoadTgzAndExtractTo(compressedFile string, destination string) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
 
 	// Create a new gzip reader on top of the file
 	gz, err := gzip.NewReader(f)
 	if err != nil {
 		return err
 	}
-	defer gz.Close()
 
 	// Create a new tar reader on top of the gzip reader
 	tr := tar.NewReader(gz)
@@ -45,6 +43,14 @@ func LoadTgzAndExtractTo(compressedFile string, destination string) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	if err = f.Close(); err != nil {
+		return err
+	}
+
+	if err = gz.Close(); err != nil {
+		return err
 	}
 
 	return err

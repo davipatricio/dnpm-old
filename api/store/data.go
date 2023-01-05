@@ -17,10 +17,12 @@ func GetCachedPackageData(packageName string, version string) (data CachedPackag
 		return
 	}
 
-	defer file.Close()
-
 	err = json.NewDecoder(file).Decode(&data)
-	return
+	if err != nil {
+		return
+	}
+
+	return data, file.Close()
 }
 
 // SetCachedPackageData sets the cached package data for the given package and version
@@ -31,8 +33,10 @@ func SetCachedPackageData(packageName string, version string, data CachedPackage
 		return
 	}
 
-	defer file.Close()
-
 	err = json.NewEncoder(file).Encode(data)
-	return
+	if err != nil {
+		return
+	}
+
+	return file.Close()
 }
