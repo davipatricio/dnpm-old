@@ -52,7 +52,7 @@ type PackageJSON struct {
 	// The url to the project homepage
 	Homepage string `json:"homepage,omitempty"`
 	// The url to your project's issue tracker and / or the email address to which issues should be reported. These are helpful for people who encounter issues with your package
-	Bugs          PackageJSONBugsField     `json:"bugs,omitempty"`
+	Bugs          *PackageJSONBugsField    `json:"bugs,omitempty"`
 	Author        PackageJSONPersonField   `json:"author,omitempty"`
 	Contribuitors []PackageJSONPersonField `json:"contribuitors,omitempty"`
 	// The type of the package
