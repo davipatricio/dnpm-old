@@ -24,12 +24,12 @@ var helpCommand = &cobra.Command{
 					return
 				}
 			}
-		} else {
-			fmt.Println("Available commands:")
-			for _, command := range rootCmd.Commands() {
-				// <command name>, <aliases> tab <command description>
-				fmt.Printf("   %s, %s\t%s\n", command.Name(), command.Aliases, command.Short)
-			}
+		}
+
+		fmt.Println("Available commands:")
+		for _, command := range rootCmd.Commands() {
+			// <command name>, <aliases> tab <command description>
+			fmt.Printf("   %s, %s\t%s\n", command.Name(), command.Aliases, command.Short)
 		}
 	},
 }
