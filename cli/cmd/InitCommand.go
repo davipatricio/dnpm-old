@@ -54,7 +54,7 @@ var initCommand = &cobra.Command{
 		packageJSON.Scripts = map[string]string{
 			"test": "echo \"Error: no test specified\" && exit 1",
 		}
-		packageJSON.Type = "module"
+		packageJSON.Type = "commonjs"
 		packageJSON.License = license
 
 		// Beautify package.json and disable escaping
