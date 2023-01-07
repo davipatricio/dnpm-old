@@ -34,7 +34,7 @@ var initCommand = &cobra.Command{
 		if !overwrite {
 			// Check if package.json already exists on current directory
 			if _, err := os.Stat("package.json"); err == nil {
-				cmd.Println("package.json already exists on current directory")
+				cmd.Println("package.json already exists on the current directory")
 				return
 			}
 		}
