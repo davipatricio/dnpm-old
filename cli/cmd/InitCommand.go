@@ -19,7 +19,7 @@ func init() {
 }
 
 var initCommand = &cobra.Command{
-	Use:     "init [package name]",
+	Use:     "init [package name] [options]",
 	Short:   "Creates a new package.json in the current directory",
 	Example: "dnpm init my-awesome-package",
 	Aliases: []string{"new"},
