@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
 )
 
@@ -26,9 +24,9 @@ var helpCommand = &cobra.Command{
 			}
 		}
 
-		fmt.Println("Available commands:")
+		cmd.Println("Available commands:")
 		for _, command := range rootCmd.Commands() {
-			fmt.Printf("   %s, %s\t%s\n", command.Name(), command.Aliases, command.Short)
+			cmd.Printf("   %s, %s\t%s\n", command.Name(), command.Aliases, command.Short)
 		}
 	},
 }
