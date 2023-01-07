@@ -45,10 +45,10 @@ func DownloadAndSavePackage(url string, shasum, packageName, version string) (bo
 			// Delete the temp file
 			err = store.DeleteTempFile(packageName, version)
 			return true, err
-		} else {
-			// Set the successfull download to false, so we can redownload the package
-			d.SuccessfullDownload = false
 		}
+
+		// Set the successfull download to false, so we can redownload the package
+		d.SuccessfullDownload = false
 	}
 
 	// If we didn't download the package yet, download it
