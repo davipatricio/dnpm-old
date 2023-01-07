@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -42,11 +43,16 @@ var initCommand = &cobra.Command{
 		}
 		packageJSON.Type = "module"
 
-		// Beautify package.json
-		packageJSONBytes, _ := json.MarshalIndent(packageJSON, "", "  ")
-		json.Unmarshal(packageJSONBytes, &packageJSON)
+		// Beautify package.json and disable escaping
+		bytes := bytes.NewBuffer([]byte{})
+		jsonEncoder := json.NewEncoder(bytes)
+		jsonEncoder.SetEscapeHTML(false)
+		jsonEncoder.SetIndent("", "  ")
+		jsonEncoder.Encode(packageJSON)
 
-		os.WriteFile("package.json", packageJSONBytes, 0644)
+		json.Unmarshal(bytes.Bytes(), &packageJSON)
+
+		os.WriteFile("package.json", bytes.Bytes(), 0644)
 
 		return
 	},
